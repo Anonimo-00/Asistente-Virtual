@@ -1,3 +1,12 @@
+
 {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "emeraldwalk.runonsave": {
+        "commands": [
+            {
+                "match": ".*",
+                "cmd": "powershell -ExecutionPolicy Bypass -File \"D:/App's/Asistente Virtual/update_repo.ps1\""
+            }
+        ]
+    }
 }

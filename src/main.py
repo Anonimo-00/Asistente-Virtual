@@ -11,6 +11,13 @@ nlp = None
 model_ready = threading.Event()
 stop_loading = threading.Event()
 
+# Variable booleana para determinar si usar la IA
+use_ai = True
+
+# Historial de chat y modo oscuro
+chat_history = []
+is_dark_mode = True
+
 # Manejador de señales para cerrar la aplicación
 def signal_handler(signum, frame):
     print("\nDeteniendo la aplicación...")
@@ -23,52 +30,69 @@ signal.signal(signal.SIGINT, signal_handler)
 MODEL_PATH = os.path.join(os.path.expanduser("~"), ".cache", "gpt4all")
 os.makedirs(MODEL_PATH, exist_ok=True)
 
+def save_chat_history(messages):
+    with open("chat_history.txt", "a", encoding="utf-8") as f:
+        for msg in messages:
+            f.write(f"{msg}\n")
+
+def load_chat_history():
+    try:
+        with open("chat_history.txt", "r", encoding="utf-8") as f:
+            return f.readlines()
+    except FileNotFoundError:
+        return []
+
 def main(page: ft.Page):
     # Configuración de la página
     page.title = "Asistente Virtual"
-    page.theme_mode = ft.ThemeMode.DARK
-    page.window_width = 1000
-    page.window_height = 800
-    page.padding = 20
+    page.theme_mode = ft.ThemeMode.DARK if is_dark_mode else ft.ThemeMode.LIGHT
+    page.window_width = 400
+    page.window_height = 700
+    page.padding = 10
     page.scroll = ft.ScrollMode.AUTO
     
     # Crear componentes mejorados
     txt_input = ft.TextField(
-        label="Escribe tu pregunta aquí",
+        label="Hazme una pregunta",
         on_submit=lambda e: send_message(),
-        width=600,
-        border_radius=10,
+        width=page.window_width - 40,
+        border_radius=20,
         filled=True,
-        multiline=True,
-        min_lines=1,
-        max_lines=3,
-        text_size=16,
+        multiline=False,
+        text_size=14,
         autofocus=True
     )
 
-    txt_response = ft.Text(
-        value="Esperando respuesta...",
-        size=16,
-        selectable=True,
-        text_align=ft.TextAlign.LEFT,
-        width=800,
-        color=ft.Colors.BLUE_200,
-        weight=ft.FontWeight.W_400,
+    def create_message_bubble(text, is_user=False):
+        return ft.Container(
+            content=ft.Column([
+                ft.Text(
+                    "Tú:" if is_user else "Asistente:",
+                    size=12,
+                    color=ft.Colors.GREY_400
+                ),
+                ft.Text(text, size=14, selectable=True),
+            ]),
+            bgcolor=ft.Colors.BLUE_700 if is_user else ft.Colors.GREY_800,
+            border_radius=20,
+            padding=15,
+            margin=ft.margin.only(left=50 if is_user else 0, right=0 if is_user else 50),
+            alignment=ft.alignment.center_right if is_user else ft.alignment.center_left,
+        )
+
+    chat_column = ft.Column(
+        scroll=ft.ScrollMode.AUTO,
+        spacing=10,
+        expand=True,
     )
 
-    # Contenedor de respuesta con scroll
     response_container = ft.Container(
-        content=ft.Column(
-            [txt_response],
-            scroll=ft.ScrollMode.AUTO,
-            spacing=10,
-            expand=True
-        ),
+        content=chat_column,
         padding=10,
-        border=ft.border.all(1, ft.Colors.BLUE_400),
-        border_radius=10,
-        bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.BLUE_GREY),
-        width=800,
+        border=ft.border.all(1, ft.Colors.GREY_400),
+        border_radius=20,
+        bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.GREY_900),
+        width=page.window_width - 20,
         height=400
     )
 
@@ -86,18 +110,14 @@ def main(page: ft.Page):
     send_button = ft.ElevatedButton(
         "Enviar",
         on_click=on_send,
-        icon=ft.Icons.SEND_ROUNDED,
+        icon=ft.Icons.SEND,
         style=ft.ButtonStyle(
-            color={
-                "default": ft.Colors.WHITE,
-                "hovered": ft.Colors.BLUE,
-            },
-            bgcolor={
-                "default": ft.Colors.BLUE,
-                "hovered": ft.Colors.BLUE_100,
-            },
-            animation_duration=300,
-        )
+            color=ft.Colors.WHITE,
+            bgcolor=ft.Colors.BLUE,
+            shape=ft.RoundedRectangleBorder(radius=20),
+        ),
+        width=100,
+        height=40,
     )
 
     stop_button = ft.ElevatedButton(
@@ -108,7 +128,10 @@ def main(page: ft.Page):
         style=ft.ButtonStyle(
             color=ft.Colors.WHITE,
             bgcolor=ft.Colors.RED,
-        )
+            shape=ft.RoundedRectangleBorder(radius=20),
+        ),
+        width=150,
+        height=40,
     )
 
     # Contenedor para input y botón
@@ -124,12 +147,38 @@ def main(page: ft.Page):
 
     # Título con animación (eliminado el parámetro animate)
     title = ft.Text(
-        "Bienvenido al Asistente Virtual",
-        size=30,
+        "Asistente Virtual",
+        size=24,
         weight=ft.FontWeight.BOLD,
         color=ft.Colors.BLUE,
         text_align=ft.TextAlign.CENTER
     )
+
+    # Botones de funciones rápidas
+    quick_actions = ft.Row([
+        ft.ElevatedButton(
+            "Limpiar Chat",
+            icon=ft.icons.CLEAR_ALL,
+            on_click=lambda _: clear_chat(),
+            style=ft.ButtonStyle(
+                color=ft.Colors.WHITE,
+                bgcolor=ft.Colors.RED_400,
+            )
+        ),
+        ft.ElevatedButton(
+            "Guardar Chat",
+            icon=ft.icons.SAVE,
+            on_click=lambda _: save_chat_history([msg.content.controls[1].value for msg in chat_column.controls]),
+            style=ft.ButtonStyle(
+                color=ft.Colors.WHITE,
+                bgcolor=ft.Colors.GREEN_400,
+            )
+        ),
+    ], alignment=ft.MainAxisAlignment.CENTER, spacing=10)
+
+    def clear_chat():
+        chat_column.controls.clear()
+        page.update()
 
     # Contenedor principal actualizado
     main_container = ft.Container(
@@ -137,6 +186,7 @@ def main(page: ft.Page):
             [
                 title,
                 ft.Divider(height=20, color=ft.Colors.BLUE_200),
+                quick_actions,
                 input_container,
                 ft.Row(
                     [progress, stop_button],
@@ -149,18 +199,61 @@ def main(page: ft.Page):
             spacing=20
         ),
         padding=ft.padding.all(20),
-        border_radius=10,
+        border_radius=20,
         bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.SURFACE),
-        width=900
+        width=page.window_width - 20
     )
 
-    # Agregar el contenedor principal centrado en la página
-    page.add(
-        ft.Container(
-            content=main_container,
-            alignment=ft.alignment.center
+    # Pestaña de configuración
+    def toggle_ai(e):
+        global use_ai
+        use_ai = e.control.value
+        page.update()
+
+    ai_switch = ft.Switch(
+        label="Usar IA",
+        value=use_ai,
+        on_change=toggle_ai
+    )
+
+    def toggle_theme(e):
+        global is_dark_mode
+        is_dark_mode = not is_dark_mode
+        page.theme_mode = ft.ThemeMode.DARK if is_dark_mode else ft.ThemeMode.LIGHT
+        page.update()
+
+    # Agregar botón de tema en la pestaña de configuración
+    theme_switch = ft.Switch(
+        label="Modo Oscuro",
+        value=is_dark_mode,
+        on_change=toggle_theme
+    )
+
+    config_tab = ft.Tab(
+        text="Configuración",
+        content=ft.Container(
+            content=ft.Column(
+                [
+                    ai_switch,
+                    theme_switch,
+                ],
+                spacing=10
+            ),
+            padding=20
         )
     )
+
+    # Pestañas principales
+    tabs = ft.Tabs(
+        tabs=[
+            ft.Tab(text="Asistente", content=main_container),
+            config_tab
+        ],
+        expand=True
+    )
+
+    # Agregar las pestañas a la página
+    page.add(tabs)
 
     # Inicializar el modelo en un hilo separado para no bloquear la UI
     def init_model():
@@ -168,7 +261,7 @@ def main(page: ft.Page):
         try:
             stop_button.visible = True
             page.update()
-            txt_response.value = "Descargando modelo ligero... esto tomará unos minutos."
+            chat_column.controls.append(create_message_bubble("Descargando modelo ligero... esto tomará unos minutos."))
             page.update()
             
             # Timer para auto-cerrar después de 5 minutos
@@ -176,7 +269,7 @@ def main(page: ft.Page):
                 time.sleep(300)  # 5 minutos
                 if not model_ready.is_set():
                     stop_loading.set()
-                    txt_response.value = "Tiempo de carga excedido. Por favor reinicia la aplicación."
+                    chat_column.controls.append(create_message_bubble("Tiempo de carga excedido. Por favor reinicia la aplicación."))
                     page.update()
             
             threading.Thread(target=check_timeout, daemon=True).start()
@@ -197,14 +290,14 @@ def main(page: ft.Page):
             if nlp is None:
                 raise Exception("El modelo no se pudo cargar correctamente")
                 
-            txt_response.value = "¡Modelo cargado correctamente! Puedes empezar a hacer preguntas."
+            chat_column.controls.append(create_message_bubble("¡Modelo cargado correctamente! Puedes empezar a hacer preguntas."))
             model_ready.set()
         except Exception as e:
             error_msg = (
                 f"Error al cargar el modelo: {str(e)}\n"
                 "Sugerencia: Intenta reiniciar la aplicación o usar otro modelo."
             )
-            txt_response.value = error_msg
+            chat_column.controls.append(create_message_bubble(error_msg))
         finally:
             progress.visible = False
             stop_button.visible = False
@@ -214,35 +307,47 @@ def main(page: ft.Page):
     progress.visible = True
     threading.Thread(target=init_model).start()
 
+    # Cargar historial al inicio
+    for msg in load_chat_history():
+        if msg.strip():
+            chat_column.controls.append(create_message_bubble(msg.strip()))
+    page.update()
+
     # Función para enviar mensaje (refactorizada desde on_send)
     def send_message():
         if not txt_input.value:
             return
         
-        if not model_ready.is_set():
-            txt_response.value = "Por favor espera a que el modelo termine de cargar..."
-            page.update()
-            return
-            
-        progress.visible = True
+        user_message = txt_input.value
+        chat_column.controls.append(create_message_bubble(user_message, True))
         page.update()
         
-        try:
-            with nlp.chat_session():
-                response = nlp.generate(
-                    txt_input.value,
-                    max_tokens=512,
-                    temp=0.7,
-                    top_k=40,
-                    top_p=0.4
-                )
-            txt_response.value = response
-        except Exception as e:
-            txt_response.value = f"Error: {str(e)}"
+        if not model_ready.is_set():
+            response = "Por favor espera a que el modelo termine de cargar..."
+        elif not use_ai:
+            response = "La IA está desactivada. Actívala en la pestaña de configuración."
+        else:
+            try:
+                with nlp.chat_session():
+                    response = nlp.generate(
+                        user_message,
+                        max_tokens=512,
+                        temp=0.7,
+                        top_k=40,
+                        top_p=0.4
+                    )
+            except Exception as e:
+                response = f"Error: {str(e)}"
+
+        chat_column.controls.append(create_message_bubble(response))
+        save_chat_history([user_message, response])
         
         progress.visible = False
         txt_input.value = ""
         page.update()
+        
+        # Auto-scroll al último mensaje
+        chat_column.scroll_to(offset=chat_column.scroll_extent)
 
 # Simplificar la ejecución principal
 if __name__ == "__main__":
