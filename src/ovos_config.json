@@ -1,0 +1,27 @@
+{
+  "skills": {
+    "default": "skills",
+    "modules": [
+      {
+        "name": "greet",
+        "description": "Saluda al usuario",
+        "response": "¡Hola! ¿Cómo puedo ayudarte hoy?"
+      },
+      {
+        "name": "help",
+        "description": "Proporciona ayuda sobre el asistente",
+        "response": "Estoy aquí para ayudarte. Puedes preguntarme cualquier cosa."
+      },
+      {
+        "name": "weather",
+        "description": "Proporciona información sobre el clima",
+        "response": "¿Qué información sobre el clima necesitas?"
+      },
+      {
+        "name": "news",
+        "description": "Proporciona las últimas noticias",
+        "response": "Aquí están las últimas noticias."
+      }
+    ]
+  }
+}
