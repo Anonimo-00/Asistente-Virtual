@@ -1,0 +1,3 @@
+[neon.plugin.text]
+ovos-utterance-normalizer=ovos_utterance_normalizer:UtteranceNormalizerPlugin
+

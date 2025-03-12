@@ -1,0 +1,3 @@
+[hivemind.database]
+hivemind-json-db-plugin=json_database.hpm:JsonDB
+

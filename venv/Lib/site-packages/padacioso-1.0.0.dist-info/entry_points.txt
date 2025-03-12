@@ -1,0 +1,3 @@
+[opm.pipeline]
+ovos-padacioso-pipeline-plugin=padacioso.opm:PadaciosoPipeline
+

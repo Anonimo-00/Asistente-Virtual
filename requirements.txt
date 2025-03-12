@@ -1,0 +1,6 @@
+flet
+requests
+numpy
+pandas
+gpt4all
+ovos-core

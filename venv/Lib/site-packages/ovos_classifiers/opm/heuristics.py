@@ -1,0 +1,298 @@
+# these plugins do not have external dependencies and do not download any data
+# they should be available in all platforms
+import string
+from ovos_classifiers.heuristics.corefiob import CorefIOBHeuristicTagger
+from ovos_classifiers.heuristics.keyword_extraction import HeuristicExtractor
+from ovos_classifiers.heuristics.machine_comprehension import BM25
+from ovos_utterance_normalizer.normalizer import Normalizer, CatalanNormalizer, CzechNormalizer, \
+    PortugueseNormalizer, AzerbaijaniNormalizer, RussianNormalizer, EnglishNormalizer, UkrainianNormalizer, \
+    GermanNormalizer
+from ovos_classifiers.heuristics.phonemizer import EnglishARPAHeuristicPhonemizer
+from ovos_classifiers.heuristics.postag import RegexPostag
+from ovos_classifiers.heuristics.summarization import WordFrequencySummarizer
+from ovos_classifiers.utils import get_stopwords
+from ovos_plugin_manager.templates.coreference import CoreferenceSolverEngine
+from ovos_plugin_manager.templates.g2p import Grapheme2PhonemePlugin
+from ovos_plugin_manager.templates.keywords import KeywordExtractor
+from ovos_plugin_manager.templates.postag import PosTagger
+from ovos_plugin_manager.templates.solvers import TldrSolver, EvidenceSolver, MultipleChoiceSolver
+from ovos_plugin_manager.templates.transformers import UtteranceTransformer
+from ovos_utils.lang.visimes import VISIMES
+from quebra_frases import sentence_tokenize, word_tokenize, span_indexed_word_tokenize
+from typing import Optional, List, Tuple
+
+
+class RegexPostagPlugin(PosTagger):
+    """very low accuracy regex based postag
+
+    this plugin is meant as a fallback only, when external models can not be downloaded
+    """
+
+    def postag(self, spans, lang=None):
+        if isinstance(spans, str):
+            spans = span_indexed_word_tokenize(spans)
+        tagger = RegexPostag({"lang": lang or self.lang})
+        tags = tagger.tag(" ".join(t for s, e, t in spans))
+        tagged_spans = [(s, e, t, tags[idx][1])
+                        for idx, (s, e, t) in enumerate(spans)]
+        return tagged_spans
+
+
+class UtteranceNormalizerPlugin(UtteranceTransformer):
+    """plugin to normalize utterances by normalizing numbers, punctuation and contractions
+    language specific pre-processing is handled here too
+    this helps intent parsers"""
+
+    def __init__(self, name="ovos-utterance-normalizer", priority=1):
+        super().__init__(name, priority)
+
+    @staticmethod
+    def get_normalizer(lang: str):
+        if lang.startswith("en"):
+            return EnglishNormalizer()
+        elif lang.startswith("pt"):
+            return PortugueseNormalizer()
+        elif lang.startswith("uk"):
+            return UkrainianNormalizer()
+        elif lang.startswith("ca"):
+            return CatalanNormalizer()
+        elif lang.startswith("cz"):
+            return CzechNormalizer()
+        elif lang.startswith("az"):
+            return AzerbaijaniNormalizer()
+        elif lang.startswith("ru"):
+            return RussianNormalizer()
+        elif lang.startswith("de"):
+            return GermanNormalizer()
+        return Normalizer()
+
+    @staticmethod
+    def strip_punctuation(utterance: str):
+        return utterance.strip(string.punctuation).strip()
+
+    def transform(self, utterances: List[str],
+                  context: Optional[dict] = None) -> (list, dict):
+        context = context or {}
+        lang = context.get("lang") or self.config.get("lang", "en-us")
+        normalizer = self.get_normalizer(lang)
+        norm = []
+        for u in utterances:
+            norm.append(u)
+            norm.append(normalizer.normalize(u))
+            norm.append(normalizer.normalize(u, remove_articles=True))
+        if self.config.get("strip_punctuation", True):
+            norm = [self.strip_punctuation(u) for u in norm]
+        # this deduplicates the list while keeping order
+        return list(dict.fromkeys(norm)), context
+
+
+class HeuristicSummarizerPlugin(TldrSolver):
+    """Heuristic summarizer that picks the best sentences based on word frequencies."""
+
+    def get_tldr(self, document: str, lang: Optional[str] = None) -> str:
+        """
+        Summarizes the given document using word frequencies.
+
+        Args:
+            document (str): The document to summarize.
+            lang (Optional[str]): The language of the document. Defaults to "en".
+
+        Returns:
+            str: The summarized text.
+        """
+        lang = lang or "en"
+        return WordFrequencySummarizer().summarize(document, lang)
+
+
+class BM25MultipleChoiceSolver(MultipleChoiceSolver):
+    """Selects the best answer to a question from a list of options using the BM25 algorithm."""
+
+    def rerank(self, query: str, options: List[str], lang: Optional[str] = None) -> List[Tuple[float, str]]:
+        """
+        Ranks the options list, returning a list of tuples (score, text).
+
+        Args:
+            query (str): The query string.
+            options (List[str]): The list of options to rank.
+            lang (Optional[str]): The language of the query and options. Defaults to None.
+
+        Returns:
+            List[Tuple[float, str]]: A list of tuples containing the score and the option text.
+        """
+        from ovos_classifiers.heuristics.machine_comprehension import rank_answers
+        stopwords = []
+        if lang:
+            try:
+                stopwords = get_stopwords(lang)
+            except Exception:  # In case nltk is not available or stopwords dataset download fails for any reason
+                pass
+
+        ranked_answers = rank_answers(query, options, stopwords)
+        return sorted([(s, a) for a, s in ranked_answers.items()], key=lambda k: k[0], reverse=True)
+
+
+class BM25SolverPlugin(EvidenceSolver):
+    """Extracts the best sentence from text that answers the question using the BM25 algorithm."""
+
+    def get_best_passage(self, evidence: str, question: str, lang: Optional[str] = None) -> str:
+        """
+        Extracts the best passage from the evidence that answers the question.
+
+        Args:
+            evidence (str): The evidence text to search within.
+            question (str): The question to answer.
+            lang (Optional[str]): The language of the evidence and question. Defaults to None.
+
+        Returns:
+            str: The best passage that answers the question.
+        """
+        bm25 = BM25()
+
+        sents = []
+        for s in evidence.split("\n"):
+            sents += sentence_tokenize(s)
+        corpus = [word_tokenize(s) for s in sents]
+        bm25.fit(corpus)
+        scores = bm25.search(word_tokenize(question))
+        best_sentence = max(zip(scores, corpus), key=lambda k: k[0])[1]
+        return " ".join(best_sentence)
+
+
+class HeuristicKeywordExtractorPlugin(KeywordExtractor):
+    """regex based keyword extractor,
+    handles common questions to make search keywords more relevant in downstream tasks"""
+
+    def extract(self, text, lang):
+        kw = HeuristicExtractor.extract_subject(text, lang)
+        if kw:
+            return {kw: 1.0}
+        return {text: 0.0}
+
+
+class HeuristicCoreferenceSolverPlugin(CoreferenceSolverEngine):
+    """heuristic coreference solver based on pronoun lookups
+
+    it is recommended to use OVOSCoreferenceSolverPlugin instead with "heuristic" model
+    this has the advantage of better postag pipeline
+
+    this plugin is meant as a fallback only, when external models can not be downloaded
+    """
+
+    @classmethod
+    def solve_corefs(cls, text, lang=None):
+        tagger = CorefIOBHeuristicTagger({"lang": lang.split("-")[0]})
+        pos = RegexPostag({"lang": lang}).tag(text)
+        iob = [tagger.tag(pos)]
+        return UtteranceNormalizerPlugin.strip_punctuation(tagger.normalize_corefs(iob)[0])
+
+
+class ARPAHeuristicPhonemizerPlugin(Grapheme2PhonemePlugin):
+
+    def get_arpa(self, word, lang="en", ignore_oov=False):
+        phones = EnglishARPAHeuristicPhonemizer.phonemize(word)
+        return phones
+
+    def utterance2visemes(self, utterance, lang="e-us", default_dur=0.4):
+        arpa = EnglishARPAHeuristicPhonemizer.phoneme_duration_tokenize(utterance)
+        return [(VISIMES.get(pho.lower(), '4'), dur) for pho, dur in arpa]
+
+    def get_ipa(self, word, lang="en", ignore_oov=False):
+        # just not requiring lang arg
+        return super().get_ipa(word, lang, ignore_oov)
+
+    def utterance2arpa(self, utterance, lang="en", ignore_oov=False):
+        # just not requiring lang arg
+        return super().utterance2arpa(utterance, lang, ignore_oov)
+
+    def utterance2ipa(self, utterance, lang="en", ignore_oov=False):
+        # just not requiring lang arg
+        return super().utterance2ipa(utterance, lang, ignore_oov)
+
+    @staticmethod
+    def get_languages():
+        return {'en'}
+
+    @property
+    def available_languages(self):
+        """Return languages supported by this G2P implementation in this state
+        This property should be overridden by the derived class to advertise
+        what languages that engine supports.
+        Returns:
+            set: supported languages
+        """
+        return self.get_languages()
+
+
+if __name__ == "__main__":
+    p = BM25MultipleChoiceSolver()
+    a = p.rerank("what is the speed of light", [
+        "very fast", "10m/s", "the speed of light is C"
+    ])
+    print(a)
+
+    a = p.select_answer("what is the speed of light", [
+        "very fast", "10m/s", "the speed of light is C"
+    ])
+    print(a)
+
+    pho = ARPAHeuristicPhonemizerPlugin()
+    pho.utterance2visemes("hello world")
+    # ['HH', 'EH', 'L', 'L', 'OW', '.', 'W', 'OW', 'R', 'L', 'D']
+    pho.utterance2ipa("hello world")
+    # ['h', 'ɛ', 'l', 'l', 'oʊ', '.', 'w', 'oʊ', 'ɹ', 'l', 'd']
+    pho.utterance2visemes("hello world")
+    # [('0', 3.1), ('3', 2.651), ('3', 2.651), ('2', 3.1), ('4', 2.605), ('2', 3.1), ('2', 2.815), ('3', 3.1)]
+
+    print(RegexPostagPlugin().postag("I like pizza", "en"))
+    # [(0, 1, 'I', 'PRON'), (2, 6, 'like', 'VERB'), (7, 12, 'pizza', 'NOUN')]
+
+    coref = HeuristicCoreferenceSolverPlugin()
+    print(coref.solve_corefs("Mom is awesome, she said she loves me!", "en"))
+
+    doc = """
+    Introducing OpenVoiceOS - The Free and Open-Source Personal Assistant and Smart Speaker.
+
+    OpenVoiceOS is a new player in the smart speaker market, offering a powerful and flexible alternative to proprietary solutions like Amazon Echo and Google Home.
+
+    With OpenVoiceOS, you have complete control over your personal data and the ability to customize and extend the functionality of your smart speaker.
+
+    Built on open-source software, OpenVoiceOS is designed to provide users with a seamless and intuitive voice interface for controlling their smart home devices, playing music, setting reminders, and much more.
+
+    The platform leverages cutting-edge technology, including machine learning and natural language processing, to deliver a highly responsive and accurate experience.
+
+    In addition to its voice capabilities, OpenVoiceOS features a touch-screen GUI made using QT5 and the KF5 framework.
+
+    The GUI provides an intuitive, user-friendly interface that allows you to access the full range of OpenVoiceOS features and functionality.
+
+    Whether you prefer voice commands or a more traditional touch interface, OpenVoiceOS has you covered.
+
+    One of the key advantages of OpenVoiceOS is its open-source nature, which means that anyone with the technical skills can contribute to the platform and help shape its future.
+
+    Whether you're a software developer, data scientist, or just someone with a passion for technology, you can get involved and help build the next generation of personal assistants and smart speakers.
+
+    With OpenVoiceOS, you have the option to run the platform fully offline, giving you complete control over your data and ensuring that your information is never shared with third parties. This makes OpenVoiceOS the perfect choice for anyone who values privacy and security.
+
+    So if you're looking for a personal assistant and smart speaker that gives you the freedom and control you deserve, be sure to check out OpenVoiceOS today!
+    """
+
+    k = HeuristicKeywordExtractorPlugin()
+    k.extract("who invented the telephone", "en")  # {'telephone': 1.0}
+    k.extract("what is the speed of light", "en")  # {'speed of light': 1.0}
+
+    b = BM25SolverPlugin()
+    print(b.get_best_passage(doc, "does OpenVoiceOS run offline"))
+    # With OpenVoiceOS , you have the option to run the platform fully offline , giving you complete control over your data and ensuring that your information is never shared with third parties .
+
+    h = HeuristicSummarizerPlugin()
+    print(h.tldr(doc, lang="en"))
+    #     Built on open-source software, OpenVoiceOS is designed to provide users with a seamless and intuitive voice interface for controlling their smart home devices, playing music, setting reminders, and much more.
+    #     Whether you're a software developer, data scientist, or just someone with a passion for technology, you can get involved and help build the next generation of personal assistants and smart speakers.
+    #     With OpenVoiceOS, you have complete control over your personal data and the ability to customize and extend the functionality of your smart speaker.
+    #     With OpenVoiceOS, you have the option to run the platform fully offline, giving you complete control over your data and ensuring that your information is never shared with third parties.
+    #     So if you're looking for a personal assistant and smart speaker that gives you the freedom and control you deserve, be sure to check out OpenVoiceOS today!
+    #     One of the key advantages of OpenVoiceOS is its open-source nature, which means that anyone with the technical skills can contribute to the platform and help shape its future.
+    #     OpenVoiceOS is a new player in the smart speaker market, offering a powerful and flexible alternative to proprietary solutions like Amazon Echo and Google Home.
+
+    u, _ = UtteranceNormalizerPlugin().transform(["Mom is awesome, she said she loves me!"])
+    print(u)
+    # ['Mom is awesome, she said she loves me!', 'Mom is awesome , she said she loves me']

@@ -1,0 +1,3 @@
+(llegeix|llegix) (el |es |l'|s')(llibre|audiollibre|àudio llibre|àudiollibre) {query}
+llegeix (el |l'|)(llibre|audiollibre|àudio llibre) {query}
+llegeix {query}

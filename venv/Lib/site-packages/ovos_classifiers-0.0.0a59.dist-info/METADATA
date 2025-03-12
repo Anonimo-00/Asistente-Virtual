@@ -1,0 +1,32 @@
+Metadata-Version: 2.1
+Name: ovos-classifiers
+Version: 0.0.0a59
+Summary: UNKNOWN
+Home-page: https://github.com/OpenVoiceOS/ovos-classifiers
+Author: jarbasai
+Author-email: jarbasai@mailfence.com
+License: apache-2.0
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Text Processing :: Linguistic
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Requires-Dist: nltk
+Requires-Dist: scikit-learn
+Requires-Dist: joblib
+Requires-Dist: ovos-utils
+Requires-Dist: python-dateutil>=2.8.2
+Requires-Dist: pyahocorasick
+Requires-Dist: anyascii
+Requires-Dist: ovos-config
+Requires-Dist: quebra-frases
+Requires-Dist: numpy<=1.26.4
+Requires-Dist: ovos-plugin-manager>=0.0.26a38
+Requires-Dist: ovos-utterance-normalizer
+
+UNKNOWN
+
+

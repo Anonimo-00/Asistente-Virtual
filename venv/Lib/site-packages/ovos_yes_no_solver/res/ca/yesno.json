@@ -1,0 +1,44 @@
+{
+  "yes": [
+    "sí",
+    "si us plau",
+    "per descomptat",
+    "oi tant!",
+    "així és",
+    "sí",
+    "confirmat",
+    "correcte",
+    "d'acord",
+    "entès",
+    "prou"
+  ],
+  "no": [
+    "no",
+    "negatiu",
+    "i ara!",
+    "no pas",
+    "noooo",
+    "en desacord",
+    "disconforme"
+  ],
+  "neutral_yes": [
+    "si us plau",
+    "segur",
+    "segurament",
+    "sens dubte",
+    "apropiat",
+    "apropiat",
+    "evidentment",
+    "prou"
+  ],
+  "neutral_no": [
+    "no és desitjable",
+    "no és volgut",
+    "inadequat",
+    "mentida",
+    "mentida",
+    "error",
+    "equivocat",
+    "incorrecte"
+  ]
+}

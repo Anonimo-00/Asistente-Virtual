@@ -1,0 +1,7 @@
+[console_scripts]
+ovos-core = ovos_core.__main__:main
+
+[opm.pipeline]
+ovos-converse-pipeline-plugin = ovos_core.intent_services.converse_service:ConverseService
+ovos-fallback-pipeline-plugin = ovos_core.intent_services.fallback_service:FallbackService
+ovos-stop-pipeline-plugin = ovos_core.intent_services.stop_service:StopService
