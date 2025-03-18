@@ -1,7 +1,28 @@
-flet
-requests
-numpy
-pandas
-gpt4all
-ovos-core
-plyer
+# GUI
+flet>=0.27.6
+
+# NLP & AI
+langchain>=0.1.0
+spacy>=3.7.2
+
+# API & Web
+fastapi>=0.104.1
+httpx>=0.25.2
+beautifulsoup4>=4.12.2
+google-api-python-client>=2.108.0
+
+# Speech
+pyttsx3>=2.90
+SpeechRecognition>=3.10.0
+pyaudio>=0.2.13
+
+# File Processing
+Pillow>=10.1.0
+python-docx>=1.0.0
+pdfplumber>=0.10.3
+markdown>=3.5.1
+
+# Utils
+python-dotenv>=1.0.0
+pydantic>=2.5.2
+websockets>=12.0

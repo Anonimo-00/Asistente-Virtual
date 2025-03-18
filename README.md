@@ -1,54 +1,51 @@
-# Asistente-Virtual
+# Asistente Virtual Personal
 
-## Descripción
-Este proyecto es un asistente virtual diseñado para ayudar con diversas tareas automatizadas, implementando procesamiento de lenguaje natural y flujos de conversación estructurados.
+Este proyecto es un asistente virtual personal desarrollado en Python, diseñado para integrarse con diversas APIs y proporcionar una variedad de funcionalidades.
 
-## Estructura del Proyecto
-```
-virtual-assistant/
-├── config/                 
-│   ├── credentials.yml     # Configuración de servicios
-│   └── settings.json       # Configuraciones generales
-├── data/                   
-│   ├── training/           # Datos de entrenamiento
-│   └── entities/           # Definiciones de entidades
-├── intents/                
-│   ├── common/             # Intents básicos
-│   └── custom/             # Intents específicos
-├── dialogs/                
-│   ├── flows/              # Flujos de conversación
-│   └── responses/          # Plantillas de respuesta
-├── integrations/           
-│   ├── skills/            
-│   └── webhooks/           
-├── services/               
-│   ├── nlp/               
-│   └── messaging/          
-├── tests/                  
-│   ├── unit/              
-│   └── integration/        
-├── utils/                  
-│   └── helpers.py         
-└── main.py                
-```
+## Características
+
+- 🎯 Monitoreo de Conexión a Internet
+- 🤖 Procesamiento de Lenguaje Natural (NLP)
+- 🔄 Integración con LLMs
+- 🗣️ Text-to-Speech y Speech-to-Text
+- 🌐 Integración con APIs (Google Suite)
+- 📱 Envío de mensajes de WhatsApp
+- 📂 Manipulación de archivos
+- 📝 Gestión de notas en Markdown
+- 🔄 Traducción
+- 🖥️ Interfaz gráfica amigable
 
 ## Instalación
+
+1. Clonar el repositorio
+2. Crear entorno virtual:
+```bash
+python -m venv venv
+venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/Mac
+```
+3. Instalar dependencias:
 ```bash
 pip install -r requirements.txt
 ```
 
+## Estructura
+
+```
+Asistente Virtual/
+├── config/
+├── integrations/
+├── services/
+├── utils/
+├── global_vars.py
+└── main.py
+```
+
 ## Uso
-Para iniciar el asistente virtual:
+
 ```bash
 python main.py
 ```
 
-## Configuración
-1. Configura las credenciales en `config/credentials.yml`
-2. Ajusta las configuraciones generales en `config/settings.json`
-
-## Contribuciones
-Las contribuciones son bienvenidas. Por favor, asegúrate de seguir la estructura del proyecto.
-
 ## Licencia
-Este proyecto está licenciado bajo la Licencia MIT.
+MIT
