@@ -130,7 +130,7 @@ class FleetApp:
             return
         self.input_field.value = ""
         self.add_message_to_chat(message, is_user=True)
-        response = self.nlp_service.get_response(message)
+        response = self.nlp_service.process_input(message)
         self.add_message_to_chat(response, is_user=False)
         self.page.update()
 
@@ -185,11 +185,40 @@ class FleetApp:
             ).start()
 
 class MainApp:
-    def __init__(self):
-        self.name = "Asistente Virtual"
+    def __init__(self, page: ft.Page):
+        self.page = page
+        self.page.title = "Asistente Virtual"
         self.nlp_service = NLPService()
-        self.fleet_app = FleetApp(self.nlp_service)
-
-    def run(self):
-        logger.info(f"Ejecutando {self.name}")
-        self.fleet_app.run()
+        self.setup_ui()
+        
+    def setup_ui(self):
+        # Configuración básica de la UI
+        self.input_text = ft.TextField(
+            label="Escribe tu mensaje",
+            multiline=False,
+            on_submit=self.send_message
+        )
+        
+        self.chat_view = ft.Column(
+            scroll=True,
+            expand=True
+        )
+        
+        self.page.add(
+            self.chat_view,
+            ft.Row([
+                self.input_text,
+                ft.IconButton(
+                    icon=ft.icons.SEND,
+                    on_click=self.send_message
+                )
+            ])
+        )
+    
+    def send_message(self, e):
+        if self.input_text.value:
+            response = self.nlp_service.process_input(self.input_text.value)
+            self.chat_view.controls.append(ft.Text(f"Tú: {self.input_text.value}"))
+            self.chat_view.controls.append(ft.Text(f"Asistente: {response}"))
+            self.input_text.value = ""
+            self.page.update()
