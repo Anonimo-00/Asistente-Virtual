@@ -1,69 +1,79 @@
 import flet as ft
-import os
+import logging
+from services.nlp.nlp_service import NLPService
+
+logger = logging.getLogger(__name__)
 
 class FleetApp:
-    def __init__(self, nlp_service, message_handler):
+    def __init__(self, nlp_service):
         self.nlp_service = nlp_service
-        self.message_handler = message_handler
-        self.search_field = None
-        
-    def search_clicked(self, e):
-        if self.search_field and self.search_field.value:
-            # Usar el servicio NLP local para procesar la consulta
-            response = self.nlp_service.process(self.search_field.value)
-            # Mostrar la respuesta usando el message_handler
-            self.message_handler.send_message(response)
-            
-    def main_page(self, page: ft.Page):
-        page.title = "Asistente Virtual"
-        page.bgcolor = ft.colors.WHITE
-        
-        # Container principal centrado
-        main_container = ft.Container(
-            content=ft.Column(
-                controls=[
-                    # Logo (usar una imagen local)
-                    ft.Image(
-                        src=os.path.join("assets", "assistant_logo.png"),
-                        width=272,
-                        height=92
-                    ),
-                    # Campo de búsqueda
-                    ft.Container(
-                        content=ft.TextField(
-                            ref=lambda field: setattr(self, 'search_field', field),
-                            border=ft.InputBorder.OUTLINE,
-                            prefix_icon=ft.icons.SEARCH,
-                            suffix_icon=ft.icons.MIC,
-                            width=550,
-                            text_align=ft.TextAlign.LEFT,
-                            border_radius=25,
-                            hint_text="Escribe tu consulta aquí..."
-                        ),
-                        margin=ft.margin.only(top=20, bottom=20)
-                    ),
-                    # Botones con eventos
-                    ft.Row(
-                        controls=[
-                            ft.ElevatedButton(
-                                text="Buscar",
-                                on_click=self.search_clicked
-                            ),
-                            ft.ElevatedButton(
-                                text="Me siento con suerte",
-                                on_click=self.search_clicked
-                            ),
-                        ],
-                        alignment=ft.MainAxisAlignment.CENTER,
-                    ),
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-            alignment=ft.alignment.center,
-            expand=True,
-        )
-        
-        page.add(main_container)
+        self.page = None
+        self.chat_history = ft.Column(expand=True, scroll=ft.ScrollMode.AUTO)
+        self.input_field = ft.TextField(label="Escribe tu mensaje", expand=True, shift_enter=True, on_submit=self.send_message)
+        self.send_button = ft.IconButton(ft.icons.SEND, on_click=self.send_message)
 
     def run(self):
-        ft.app(target=self.main_page)
+        ft.app(target=self.main)
+
+    def main(self, page: ft.Page):
+        self.page = page
+        page.title = "Asistente Virtual"
+        page.vertical_alignment = ft.MainAxisAlignment.CENTER
+        page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+        page.window_width = 500
+        page.window_height = 600
+        page.theme_mode = ft.ThemeMode.DARK
+
+        # Barra superior
+        appbar = ft.AppBar(
+            title=ft.Text("Asistente Virtual", color=ft.colors.WHITE),
+            bgcolor=ft.colors.BLUE_GREY_900,
+        )
+        page.appbar = appbar
+
+        page.add(
+            ft.Container(
+                content=ft.Column(
+                    [
+                        self.chat_history,
+                        ft.Row([self.input_field, self.send_button]),
+                    ],
+                    expand=True
+                ),
+                padding=10,
+                expand=True
+            )
+        )
+
+    def send_message(self, e):
+        message = self.input_field.value
+        if not message:
+            return
+        self.input_field.value = ""
+        self.add_message_to_chat(message, is_user=True)
+        response = self.nlp_service.get_response(message)
+        self.add_message_to_chat(response, is_user=False)
+        self.page.update()
+
+    def add_message_to_chat(self, message, is_user):
+        self.chat_history.controls.append(
+            ft.Container(
+                content=ft.Text(message, color=ft.colors.WHITE),
+                alignment=ft.alignment.center_right if is_user else ft.alignment.center_left,
+                bgcolor=ft.colors.BLUE_GREY_200 if is_user else ft.colors.BLUE_GREY_400,
+                padding=10,
+                border_radius=5,
+                margin=5,
+            )
+        )
+        self.page.update()
+
+class MainApp:
+    def __init__(self):
+        self.name = "Asistente Virtual"
+        self.nlp_service = NLPService()
+        self.fleet_app = FleetApp(self.nlp_service)
+
+    def run(self):
+        logger.info(f"Ejecutando {self.name}")
+        self.fleet_app.run()

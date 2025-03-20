@@ -20,5 +20,5 @@ build/
 *.egg-info/
 
 # Archivos de configuración local
-config/credentials.yml
-.env
+
+

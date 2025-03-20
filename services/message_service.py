@@ -1,9 +1,13 @@
 from typing import Dict, Any
 import asyncio
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MessageHandler:
     def __init__(self):
+        logger.info("Creando MessageHandler")
         self.messages = []
         self.callbacks = []
     
