@@ -2,7 +2,7 @@
 flet>=0.27.6
 
 # NLP & AI
-langchain>=0.1.0
+langchain-community>=0.0.10
 spacy>=3.7.2
 
 # API & Web
