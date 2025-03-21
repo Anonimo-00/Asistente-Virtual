@@ -1,8 +1,92 @@
 import flet as ft
-from integrations.ui.flet_app import MainApp
+import logging
+import time
+import threading
+from integrations.ui.flet_app import FleetApp
+from services.nlp.nlp_service import NLPService
+from utils.wifi_monitor import start_wifi_monitor
+from global_vars import set_global_var, update_global_state, _global_state
+import sys
+import os
 
-def main():
-    ft.app(target=MainApp)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suprimir mensajes de TensorFlow
+
+# Configurar logging básico antes que todo
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+# Suprimir mensajes específicos
+for logger_name in ['absl', 'tensorflow', 'tensorboard', 'google']:
+    logging.getLogger(logger_name).setLevel(logging.ERROR)
+    logging.getLogger(logger_name).propagate = False
+
+# Desactivar advertencias innecesarias
+import warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
+
+# Configurar logging básico
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Intentar configurar absl logging si está disponible
+try:
+    import absl.logging
+    absl.logging.set_verbosity(absl.logging.ERROR)
+    absl.logging.use_absl_handler()
+except ImportError:
+    # Si absl no está instalado, silenciar los warnings relacionados
+    logging.getLogger().setLevel(logging.ERROR)
+
+logger = logging.getLogger(__name__)
+
+def print_global_vars():
+    """Imprime el estado de las variables globales cada 20 segundos"""
+    while True:
+        try:
+            logger.info("\n=== Estado de Variables Globales ===")
+            for key, value in _global_state.items():
+                logger.info(f"{key}: {value}")
+            logger.info("=" * 35)
+            time.sleep(20)
+        except Exception as e:
+            logger.error(f"Error imprimiendo variables: {e}")
+
+def main(page: ft.Page):
+    try:
+        # Asegurar que is_active está configurado antes de iniciar los monitores
+        set_global_var("is_active", True)
+        
+        # Iniciar monitores
+        vars_monitor = threading.Thread(target=print_global_vars, daemon=True)
+        vars_monitor.start()
+        logger.info("Monitor de variables iniciado")
+        
+        wifi_monitor_thread = start_wifi_monitor()
+        logger.info("Monitor WiFi iniciado")
+        
+        # Inicializar servicios
+        nlp_service = NLPService()
+        app = FleetApp(nlp_service)
+        
+        # Configurar página y UI
+        page.title = "Asistente Virtual"
+        page.window_width = 800
+        page.window_min_width = 400
+        
+        # Iniciar la UI
+        app.main(page)
+        
+    except Exception as e:
+        logger.error(f"Error iniciando la aplicación: {e}")
+        raise
 
 if __name__ == "__main__":
-    main()
+    ft.app(target=main)

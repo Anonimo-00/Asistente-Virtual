@@ -4,16 +4,15 @@ Este proyecto es un asistente virtual personal desarrollado en Python, diseñado
 
 ## Características
 
-- 🎯 Monitoreo de Conexión a Internet
-- 🤖 Procesamiento de Lenguaje Natural (NLP)
-- 🔄 Integración con LLMs
+- 🎯 Monitoreo de Conexión a Internet con estado en tiempo real
+- 🤖 Integración con Gemini AI para procesamiento de lenguaje natural
+- 🖼️ Soporte para análisis de imágenes con Gemini Vision
+- 🔄 Modo offline con respuestas inteligentes
 - 🗣️ Text-to-Speech y Speech-to-Text
-- 🌐 Integración con APIs (Google Suite)
-- 📱 Envío de mensajes de WhatsApp
-- 📂 Manipulación de archivos
-- 📝 Gestión de notas en Markdown
-- 🔄 Traducción
-- 🖥️ Interfaz gráfica amigable
+- 📱 Interfaz gráfica amigable con Flet
+- 🌐 Estado de conexión en tiempo real
+- 📊 Sistema de logs y monitoreo
+- ⚙️ Configuración personalizable
 
 ## Instalación
 
@@ -27,6 +26,11 @@ source venv/bin/activate  # Linux/Mac
 3. Instalar dependencias:
 ```bash
 pip install -r requirements.txt
+```
+4. Configurar archivo `.env` en la carpeta `config/`:
+```env
+LANGUAGE_MODEL=gemini-1.5-flash
+GEMINI_API_KEY=your_api_key_here
 ```
 
 ## Estructura

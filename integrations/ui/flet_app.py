@@ -1,5 +1,6 @@
 import flet as ft
 import logging
+import time  # Añadir esta línea
 from services.nlp.nlp_service import NLPService
 from utils.state_manager import StateManager
 from typing import Optional
@@ -7,6 +8,9 @@ from pydantic import BaseModel
 import speech_recognition as sr
 import pyttsx3
 import threading
+import queue
+import urllib.request
+from global_vars import get_global_var
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +20,9 @@ class UIConfig(BaseModel):
     theme_mode: str = "dark"
     enable_voice: bool = True
     voice_lang: str = "es"
+    font_size: int = 16
+    accent_color: str = "blue"
+    message_spacing: int = 10
 
 class FleetApp:
     def __init__(self, nlp_service):
@@ -43,20 +50,78 @@ class FleetApp:
             on_click=self.send_message,
             icon_color=ft.colors.BLUE_400
         )
+        self.voice_queue = queue.Queue()
+        self.voice_thread = None
+        self.settings_visible = False
+        self.check_internet_connection()
         if UIConfig().enable_voice:
             self.init_voice_components()
+            self.start_voice_processor()
+        self.check_connection_timer = None
+        self.chat_container = None
+        self.last_wifi_status = None
+        self.connection_check_active = True
+        self.connection_thread = None
+
+    def check_internet_connection(self):
+        self.is_online = get_global_var("wifi_status")
+
+    def start_connection_checker(self):
+        def check_periodically():
+            while self.connection_check_active and hasattr(self, 'page'):
+                try:
+                    self.check_internet_connection()
+                    self.update_connection_status()
+                    time.sleep(1)
+                except Exception as e:
+                    logger.error(f"Error en connection checker: {e}")
+                    time.sleep(1)
+
+        self.connection_thread = threading.Thread(target=check_periodically, daemon=True)
+        self.connection_thread.start()
+
+    def update_connection_status(self):
+        if not hasattr(self, 'connection_icon') or not self.page:
+            return
+            
+        try:
+            current_status = get_global_var("wifi_status")
+            if current_status != self.last_wifi_status:
+                self.connection_icon.name = ft.icons.CLOUD_DONE if current_status else ft.icons.CLOUD_OFF
+                self.connection_icon.color = ft.colors.GREEN_400 if current_status else ft.colors.RED_400
+                self.last_wifi_status = current_status
+                self.page.update()
+                logger.info(f"Estado de conexión actualizado: {'Conectado' if current_status else 'Desconectado'}")
+        except Exception as e:
+            logger.error(f"Error actualizando estado de conexión: {e}")
 
     def init_voice_components(self):
         self.recognizer = sr.Recognizer()
         self.engine = pyttsx3.init()
         self.engine.setProperty('rate', 150)
         self.engine.setProperty('voice', 'spanish')
+        self.voice_active = True
         
         self.mic_button = ft.IconButton(
             ft.icons.MIC,
             on_click=self.toggle_voice_input,
             icon_color=ft.colors.BLUE_400
         )
+
+    def start_voice_processor(self):
+        def process_voice_queue():
+            while self.voice_active:
+                try:
+                    message = self.voice_queue.get()
+                    if message:
+                        self.engine.say(message)
+                        self.engine.runAndWait()
+                    self.voice_queue.task_done()
+                except Exception as e:
+                    logger.error(f"Error procesando mensaje de voz: {e}")
+                    
+        self.voice_thread = threading.Thread(target=process_voice_queue, daemon=True)
+        self.voice_thread.start()
 
     def toggle_voice_input(self, e):
         def listen_thread():
@@ -79,6 +144,35 @@ class FleetApp:
     def run(self):
         ft.app(target=self.main)
 
+    def toggle_settings(self, e):
+        self.settings_visible = not self.settings_visible
+        self.update_settings_view()
+        self.page.update()
+
+    def create_settings_view(self):
+        return ft.Container(
+            visible=False,
+            content=ft.Column([
+                ft.Text("Configuración", size=20, weight=ft.FontWeight.BOLD),
+                ft.Divider(),
+                ft.Switch(label="Modo oscuro", value=self.config.theme_mode == "dark",
+                         on_change=self.toggle_theme),
+                ft.Switch(label="Voz activada", value=self.config.enable_voice,
+                         on_change=self.toggle_voice),
+                ft.Slider(
+                    label="Tamaño de fuente",
+                    min=12,
+                    max=24,
+                    value=self.config.font_size,
+                    on_change=self.change_font_size
+                ),
+            ]),
+            padding=20,
+            bgcolor=ft.colors.SURFACE_VARIANT,
+            border_radius=10,
+            margin=10,
+        )
+
     def main(self, page: ft.Page):
         self.page = page
         page.title = "Asistente Virtual"
@@ -88,16 +182,30 @@ class FleetApp:
         page.padding = 0
         page.bgcolor = ft.colors.SURFACE_VARIANT
 
-        # Barra superior estilo Google
         appbar = ft.AppBar(
             leading=ft.Icon(ft.icons.CHAT_ROUNDED),
             title=ft.Text("Asistente Virtual", size=20, weight=ft.FontWeight.BOLD),
             center_title=False,
             bgcolor=ft.colors.SURFACE_VARIANT,
             elevation=0.5,
+            actions=[
+                ft.IconButton(
+                    ft.icons.SETTINGS,
+                    on_click=self.toggle_settings,
+                    icon_color=ft.colors.BLUE_400
+                ),
+                ft.Icon(
+                    ft.icons.CLOUD_DONE if self.is_online else ft.icons.CLOUD_OFF,
+                    color=ft.colors.GREEN_400 if self.is_online else ft.colors.RED_400,
+                ),
+            ],
         )
+        self.connection_icon = ft.Icon(
+            ft.icons.CLOUD_DONE if self.is_online else ft.icons.CLOUD_OFF,
+            color=ft.colors.GREEN_400 if self.is_online else ft.colors.RED_400,
+        )
+        appbar.actions[-1] = self.connection_icon
         
-        # Contenedor principal
         input_row = [self.input_field, self.send_button]
         if hasattr(self, 'mic_button'):
             input_row.append(self.mic_button)
@@ -121,8 +229,50 @@ class FleetApp:
             ]),
             expand=True,
         )
+        self.chat_container = chat_container
 
-        page.add(appbar, chat_container)
+        self.settings_view = self.create_settings_view()
+        main_content = ft.Row(
+            [
+                ft.Container(
+                    content=chat_container,
+                    expand=True,
+                ),
+                self.settings_view
+            ],
+            expand=True,
+        )
+
+        page.add(appbar, main_content)
+        page.on_resize = self.on_page_resize
+        page.on_close = self.on_close
+
+        self.start_connection_checker()
+
+    def on_page_resize(self, e):
+        if self.page.width < 600:
+            self.settings_view.visible = False
+            self.settings_visible = False
+        self.update_layout()
+        self.page.update()
+
+    def update_layout(self):
+        max_width = min(self.page.width, self.config.max_width)
+        for msg in self.chat_history.controls:
+            msg.width = max_width * self.config.message_width_ratio
+
+    def update_settings_view(self):
+        if hasattr(self, 'settings_view'):
+            self.settings_view.visible = self.settings_visible
+            if self.page.width < 600:
+                self.settings_view.width = self.page.width
+                self.settings_view.height = self.page.height
+                self.settings_view.offset = ft.Offset(0, 0 if self.settings_visible else 1)
+            else:
+                self.settings_view.width = min(300, self.page.width * 0.3)
+                self.chat_container.width = (self.page.width - self.settings_view.width 
+                                          if self.settings_visible else self.page.width)
+            self.page.update()
 
     def send_message(self, e):
         message = self.input_field.value
@@ -147,7 +297,7 @@ class FleetApp:
                 color=ft.colors.WHITE if is_user else ft.colors.BLACK,
                 selectable=True,
                 weight=ft.FontWeight.W_400,
-                overflow=ft.TextOverflow.WRAP,
+                overflow=ft.TextOverflow.CLIP,
                 text_align=ft.TextAlign.LEFT,
             ),
             bgcolor=ft.colors.BLUE_700 if is_user else ft.colors.WHITE,
@@ -163,7 +313,6 @@ class FleetApp:
             animate=ft.animation.Animation(300, ft.AnimationCurve.EASE_OUT),
         )
 
-        # Wrapper con ancho responsivo
         wrapper = ft.Container(
             content=msg_container,
             alignment=ft.alignment.center_right if is_user else ft.alignment.center_left,
@@ -179,46 +328,28 @@ class FleetApp:
             logger.error(f"Error al agregar mensaje: {e}")
 
         if not is_user and self.config.enable_voice:
-            threading.Thread(
-                target=lambda: self.engine.say(message) or self.engine.runAndWait(),
-                daemon=True
-            ).start()
+            self.voice_queue.put(message)
 
-class MainApp:
-    def __init__(self, page: ft.Page):
-        self.page = page
-        self.page.title = "Asistente Virtual"
-        self.nlp_service = NLPService()
-        self.setup_ui()
-        
-    def setup_ui(self):
-        # Configuración básica de la UI
-        self.input_text = ft.TextField(
-            label="Escribe tu mensaje",
-            multiline=False,
-            on_submit=self.send_message
-        )
-        
-        self.chat_view = ft.Column(
-            scroll=True,
-            expand=True
-        )
-        
-        self.page.add(
-            self.chat_view,
-            ft.Row([
-                self.input_text,
-                ft.IconButton(
-                    icon=ft.icons.SEND,
-                    on_click=self.send_message
-                )
-            ])
-        )
-    
-    def send_message(self, e):
-        if self.input_text.value:
-            response = self.nlp_service.process_input(self.input_text.value)
-            self.chat_view.controls.append(ft.Text(f"Tú: {self.input_text.value}"))
-            self.chat_view.controls.append(ft.Text(f"Asistente: {response}"))
-            self.input_text.value = ""
-            self.page.update()
+    def toggle_theme(self, e):
+        self.config.theme_mode = "dark" if e.control.value else "light"
+        self.page.theme_mode = getattr(ft.ThemeMode, self.config.theme_mode.upper())
+        self.page.update()
+
+    def toggle_voice(self, e):
+        self.config.enable_voice = e.control.value
+        if self.config.enable_voice and not hasattr(self, 'engine'):
+            self.init_voice_components()
+            self.start_voice_processor()
+
+    def change_font_size(self, e):
+        self.config.font_size = int(e.control.value)
+        self.update_layout()
+        self.page.update()
+
+    def on_close(self, e):
+        self.voice_active = False
+        self.connection_check_active = False
+        if hasattr(self, 'engine'):
+            self.engine.stop()
+        if self.connection_thread:
+            self.connection_thread.join(timeout=1)
