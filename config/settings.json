@@ -1,6 +1,6 @@
 {
     "app": {
-        "name": "Nova Assistant",
+        "name": "Central",
         "language": "es",
         "timezone": "Europe/Madrid"
     },
@@ -12,8 +12,20 @@
         "voice_lang": "es"
     },
     "nlp": {
-        "model": "gpt-3.5-turbo",
+        "model": "gemini-1.5-flash",
         "temperature": 0.7,
         "max_tokens": 150
+    },
+    "backup": {
+        "enabled": true,
+        "auto_backup": true,
+        "interval_hours": 24,
+        "max_backups": 5,
+        "backup_path": "backup/",
+        "directories_to_backup": [
+            "config",
+            "data",
+            "intents"
+        ]
     }
 }
