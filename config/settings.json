@@ -9,7 +9,25 @@
         "message_width_ratio": 0.7,
         "theme_mode": "dark",
         "enable_voice": true,
-        "voice_lang": "es"
+        "voice_lang": "es",
+        "themes": {
+            "dark": {
+                "bg_primary": "#1E1E1E",
+                "bg_secondary": "#252525",
+                "accent": "#007AFF",
+                "text_primary": "#FFFFFF",
+                "text_secondary": "#B0B0B0",
+                "surface": "#2D2D2D"
+            },
+            "light": {
+                "bg_primary": "#F5F5F5",
+                "bg_secondary": "#FFFFFF",
+                "accent": "#007AFF",
+                "text_primary": "#000000",
+                "text_secondary": "#666666",
+                "surface": "#EEEEEE"
+            }
+        }
     },
     "nlp": {
         "model": "gemini-1.5-flash",

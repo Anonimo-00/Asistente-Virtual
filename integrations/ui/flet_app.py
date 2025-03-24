@@ -1,8 +1,9 @@
 import flet as ft
 import logging
-import time  # Añadir esta línea
+import time
 from services.nlp.nlp_service import NLPService
 from utils.state_manager import StateManager
+from utils.user_manager import UserManager
 from typing import Optional
 from pydantic import BaseModel
 import speech_recognition as sr
@@ -11,6 +12,7 @@ import threading
 import queue
 import urllib.request
 from global_vars import get_global_var
+from .config_window import ConfigWindow  # Cambiar esta línea - importación correcta
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,23 @@ class FleetApp:
         self.last_wifi_status = None
         self.connection_check_active = True
         self.connection_thread = None
+        self.config_window = None  # Mover esta línea aquí
+        self.settings_button = ft.IconButton(
+            icon=ft.icons.SETTINGS,
+            on_click=self.toggle_settings,
+            icon_color=ft.colors.BLUE_400,
+            tooltip="Configuración"
+        )
+        self.connection_icon_online = ft.Icon(
+            ft.icons.CLOUD_DONE,
+            color=ft.colors.GREEN_400,
+            visible=self.is_online
+        )
+        self.connection_icon_offline = ft.Icon(
+            ft.icons.CLOUD_OFF,
+            color=ft.colors.RED_400,
+            visible=not self.is_online
+        )
 
     def check_internet_connection(self):
         self.is_online = get_global_var("wifi_status")
@@ -81,14 +100,14 @@ class FleetApp:
         self.connection_thread.start()
 
     def update_connection_status(self):
-        if not hasattr(self, 'connection_icon') or not self.page:
+        if not hasattr(self, 'connection_icon_online') or not self.page:
             return
             
         try:
             current_status = get_global_var("wifi_status")
             if current_status != self.last_wifi_status:
-                self.connection_icon.name = ft.icons.CLOUD_DONE if current_status else ft.icons.CLOUD_OFF
-                self.connection_icon.color = ft.colors.GREEN_400 if current_status else ft.colors.RED_400
+                self.connection_icon_online.visible = current_status
+                self.connection_icon_offline.visible = not current_status
                 self.last_wifi_status = current_status
                 self.page.update()
                 logger.info(f"Estado de conexión actualizado: {'Conectado' if current_status else 'Desconectado'}")
@@ -145,9 +164,63 @@ class FleetApp:
         ft.app(target=self.main)
 
     def toggle_settings(self, e):
-        self.settings_visible = not self.settings_visible
-        self.update_settings_view()
+        """Muestra/oculta la ventana de configuración"""
+        try:
+            if not self.config_window:
+                self.config_window = ConfigWindow(self.page, on_close=self.on_config_close)
+            
+            # Bloquear botón
+            self.settings_button.disabled = True
+            self.page.update()
+            
+            # Mostrar config
+            self.config_window.show()
+            
+            # Desbloquear después de breve delay
+            def enable_button():
+                time.sleep(0.3)
+                self.settings_button.disabled = False
+                self.page.update()
+            
+            threading.Thread(target=enable_button, daemon=True).start()
+            
+        except Exception as e:
+            logger.error(f"Error mostrando configuración: {e}")
+            self.settings_button.disabled = False
+            self.page.update()
+
+    def on_config_close(self):
+        # Actualizar la UI con las nuevas configuraciones
+        self._load_user_preferences()
         self.page.update()
+
+    def _load_user_preferences(self):
+        """Carga y aplica preferencias de forma optimizada"""
+        try:
+            user_manager = UserManager()
+            theme = user_manager.obtener_dato("preferencias", "tema") or "dark"
+            
+            # Aplicar tema solo si ha cambiado
+            if theme != self.config.theme_mode:
+                self.config.theme_mode = theme
+                self.page.theme_mode = theme.upper()
+                self.page.bgcolor = "#1E1E1E" if theme == "dark" else "#F5F5F5"
+                
+            # Actualizar otras preferencias
+            self.config.font_size = user_manager.obtener_dato("preferencias", "tamano_fuente") or 16
+            voice_enabled = user_manager.obtener_dato("preferencias", "voz_activada") or False
+            
+            if voice_enabled != self.config.enable_voice:
+                self.config.enable_voice = voice_enabled
+                if voice_enabled and not hasattr(self, 'engine'):
+                    self.init_voice_components()
+                    self.start_voice_processor()
+                elif not voice_enabled and hasattr(self, 'engine'):
+                    self.voice_active = False
+            
+            self.page.update()
+        except Exception as e:
+            logger.error(f"Error cargando preferencias: {e}")
 
     def create_settings_view(self):
         return ft.Container(
@@ -189,22 +262,11 @@ class FleetApp:
             bgcolor=ft.colors.SURFACE_VARIANT,
             elevation=0.5,
             actions=[
-                ft.IconButton(
-                    ft.icons.SETTINGS,
-                    on_click=self.toggle_settings,
-                    icon_color=ft.colors.BLUE_400
-                ),
-                ft.Icon(
-                    ft.icons.CLOUD_DONE if self.is_online else ft.icons.CLOUD_OFF,
-                    color=ft.colors.GREEN_400 if self.is_online else ft.colors.RED_400,
-                ),
+                self.settings_button,
+                self.connection_icon_online,
+                self.connection_icon_offline,
             ],
         )
-        self.connection_icon = ft.Icon(
-            ft.icons.CLOUD_DONE if self.is_online else ft.icons.CLOUD_OFF,
-            color=ft.colors.GREEN_400 if self.is_online else ft.colors.RED_400,
-        )
-        appbar.actions[-1] = self.connection_icon
         
         input_row = [self.input_field, self.send_button]
         if hasattr(self, 'mic_button'):
@@ -248,6 +310,7 @@ class FleetApp:
         page.on_close = self.on_close
 
         self.start_connection_checker()
+        self._load_user_preferences()
 
     def on_page_resize(self, e):
         if self.page.width < 600:
@@ -290,17 +353,23 @@ class FleetApp:
             self.config.max_width * self.config.message_width_ratio
         )
         
+        # Determinar colores basados en el tema
+        is_dark = self.page.theme_mode == "DARK"
+        text_color = ft.colors.WHITE if is_user or is_dark else ft.colors.BLACK
+        bg_color = (ft.colors.BLUE_700 if is_user else 
+                   (ft.colors.SURFACE_VARIANT if is_dark else ft.colors.WHITE))
+        
         msg_container = ft.Container(
             content=ft.Text(
                 value=message,
-                size=16,
-                color=ft.colors.WHITE if is_user else ft.colors.BLACK,
+                size=self.config.font_size,
+                color=text_color,
                 selectable=True,
                 weight=ft.FontWeight.W_400,
                 overflow=ft.TextOverflow.CLIP,
                 text_align=ft.TextAlign.LEFT,
             ),
-            bgcolor=ft.colors.BLUE_700 if is_user else ft.colors.WHITE,
+            bgcolor=bg_color,
             border_radius=ft.border_radius.all(15),
             padding=ft.padding.all(15),
             width=max_width,
@@ -311,6 +380,8 @@ class FleetApp:
                 offset=ft.Offset(0, 2),
             ),
             animate=ft.animation.Animation(300, ft.AnimationCurve.EASE_OUT),
+            opacity=0,
+            offset=ft.transform.Offset(0, 0.5),
         )
 
         wrapper = ft.Container(
@@ -323,7 +394,16 @@ class FleetApp:
         try:
             self.chat_history.controls.append(wrapper)
             self.state.add_message(message, is_user)
-            self.page.update()
+            
+            # Animación con threading
+            def animate_message():
+                time.sleep(0.05)  # Pequeño delay para la animación
+                msg_container.opacity = 1
+                msg_container.offset = ft.transform.Offset(0, 0)
+                self.page.update()
+            
+            threading.Thread(target=animate_message, daemon=True).start()
+            
         except Exception as e:
             logger.error(f"Error al agregar mensaje: {e}")
 
@@ -333,6 +413,7 @@ class FleetApp:
     def toggle_theme(self, e):
         self.config.theme_mode = "dark" if e.control.value else "light"
         self.page.theme_mode = getattr(ft.ThemeMode, self.config.theme_mode.upper())
+        self.page.bgcolor = "#1E1E1E" if self.config.theme_mode == "dark" else "#F5F5F5"
         self.page.update()
 
     def toggle_voice(self, e):
