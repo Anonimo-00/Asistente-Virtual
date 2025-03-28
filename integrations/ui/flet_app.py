@@ -4,7 +4,7 @@ import time
 from services.nlp.nlp_service import NLPService
 from utils.state_manager import StateManager
 from utils.user_manager import UserManager
-from typing import Optional
+from typing import Optional, Dict
 from pydantic import BaseModel
 import speech_recognition as sr
 import pyttsx3
@@ -13,18 +13,65 @@ import queue
 import urllib.request
 from global_vars import get_global_var
 from .config_window import ConfigWindow  # Cambiar esta línea - importación correcta
+from .settings_view import SearchSettingsView  # Moved after flet imports
 
 logger = logging.getLogger(__name__)
 
+class UITheme(BaseModel):
+    bg_primary: str
+    bg_secondary: str
+    accent: str
+    text_primary: str
+    text_secondary: str
+    surface: str
+    error: str
+    success: str
+
+class UISpacing(BaseModel):
+    chat_padding: int = 20
+    message_spacing: int = 12
+    input_padding: int = 16
+
+class UIBorderRadius(BaseModel):
+    message: int = 20
+    input: int = 24
+    button: int = 12
+
 class UIConfig(BaseModel):
-    max_width: int = 800
-    message_width_ratio: float = 0.7
+    max_width: int = 1200
+    min_width: int = 400
+    message_width_ratio: float = 0.85
     theme_mode: str = "dark"
     enable_voice: bool = True
     voice_lang: str = "es"
     font_size: int = 16
     accent_color: str = "blue"
     message_spacing: int = 10
+    spacing: UISpacing = UISpacing()
+    border_radius: UIBorderRadius = UIBorderRadius()
+    themes: Dict[str, UITheme] = {
+        "dark": UITheme(
+            bg_primary="#ffffff",
+            bg_secondary="#f8f9fa",
+            accent="#4285f4",
+            text_primary="#202124",
+            text_secondary="#5f6368",
+            surface="#e8eaed",
+            error="#d93025",
+            success="#188038"
+        ),
+        "light": UITheme(
+            bg_primary="#ffffff",
+            bg_secondary="#f8f9fa",
+            accent="#1a73e8",
+            text_primary="#202124",
+            text_secondary="#5f6368",
+            surface="#e8eaed",
+            error="#d93025",
+            success="#188038"
+        )
+
+    }
 
 class FleetApp:
     def __init__(self, nlp_service):
@@ -47,6 +94,14 @@ class FleetApp:
             filled=True,
             bgcolor=ft.colors.WHITE10,
         )
+        self.mic_button = ft.IconButton(
+            ft.icons.MIC,
+            on_click=self.toggle_voice_input,
+            icon_color=ft.colors.BLUE_400,
+            tooltip="Iniciar entrada de voz"
+        )
+
+
         self.send_button = ft.IconButton(
             ft.icons.SEND_ROUNDED,
             on_click=self.send_message,
@@ -81,6 +136,7 @@ class FleetApp:
             color=ft.colors.RED_400,
             visible=not self.is_online
         )
+        self.search_settings = SearchSettingsView(save_callback=self._on_settings_saved)
 
     def check_internet_connection(self):
         self.is_online = get_global_var("wifi_status")
@@ -239,6 +295,7 @@ class FleetApp:
                     value=self.config.font_size,
                     on_change=self.change_font_size
                 ),
+                self.search_settings,
             ]),
             padding=20,
             bgcolor=ft.colors.SURFACE_VARIANT,
@@ -248,69 +305,80 @@ class FleetApp:
 
     def main(self, page: ft.Page):
         self.page = page
-        page.title = "Asistente Virtual"
+        page.title = "Central Assistant"
         page.window_width = self.config.max_width
-        page.window_min_width = 400
+        page.window_min_width = self.config.min_width
         page.theme_mode = getattr(ft.ThemeMode, self.config.theme_mode.upper())
         page.padding = 0
-        page.bgcolor = ft.colors.SURFACE_VARIANT
+        page.bgcolor = self.get_theme_color("bg_primary")
 
-        appbar = ft.AppBar(
-            leading=ft.Icon(ft.icons.CHAT_ROUNDED),
-            title=ft.Text("Asistente Virtual", size=20, weight=ft.FontWeight.BOLD),
-            center_title=False,
-            bgcolor=ft.colors.SURFACE_VARIANT,
-            elevation=0.5,
-            actions=[
-                self.settings_button,
-                self.connection_icon_online,
-                self.connection_icon_offline,
-            ],
-        )
-        
-        input_row = [self.input_field, self.send_button]
-        if hasattr(self, 'mic_button'):
-            input_row.append(self.mic_button)
-        
-        chat_container = ft.Container(
-            content=ft.Column([
-                ft.Container(
-                    content=self.chat_history,
-                    expand=True,
-                    padding=ft.padding.symmetric(horizontal=15),
-                ),
-                ft.Container(
-                    content=ft.Row(
-                        input_row,
-                        alignment=ft.MainAxisAlignment.CENTER,
+        # Crear barra de entrada flotante estilo Google Assistant
+        input_container = ft.Container(
+            content=ft.Row(
+                [
+                    ft.IconButton(
+                        icon=ft.icons.ASSISTANT,
+                        icon_color=self.get_theme_color("accent"),
+                        icon_size=24,
+                        tooltip="Assistant"
                     ),
-                    padding=ft.padding.all(15),
-                    bgcolor=ft.colors.SURFACE_VARIANT,
-                    border=ft.border.only(top=ft.BorderSide(1, ft.colors.OUTLINE_VARIANT)),
-                )
+                    ft.TextField(
+                        ref=self.input_field,
+                        hint_text="¿Cómo puedo ayudarte?",
+                        border_radius=24,
+                        filled=True,
+                        expand=True,
+                        text_size=16,
+                        content_padding=20,
+                        cursor_color=self.get_theme_color("accent"),
+                        bgcolor=self.get_theme_color("surface"),
+                        border_color="transparent",
+                        focused_border_color=self.get_theme_color("accent")
+                    ),
+                    self.mic_button,
+                    self.send_button
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=8
+            ),
+            padding=20,
+            margin=ft.margin.only(left=20, right=20, bottom=20),
+            bgcolor=self.get_theme_color("bg_secondary"),
+            border_radius=28,
+            shadow=ft.BoxShadow(
+                spread_radius=1,
+                blur_radius=8,
+                color=ft.colors.with_opacity(0.1, ft.colors.BLACK),
+                offset=ft.Offset(0, 2)
+            )
+        )
+
+        # Actualizar el diseño de los mensajes
+        self.chat_history = ft.ListView(
+            expand=True,
+            spacing=16,
+            padding=20,
+            auto_scroll=True
+        )
+
+        # Contenedor principal con efecto de fondo difuminado
+        main_container = ft.Container(
+            content=ft.Column([
+                self.chat_history,
+                input_container
             ]),
             expand=True,
-        )
-        self.chat_container = chat_container
-
-        self.settings_view = self.create_settings_view()
-        main_content = ft.Row(
-            [
-                ft.Container(
-                    content=chat_container,
-                    expand=True,
-                ),
-                self.settings_view
-            ],
-            expand=True,
+            gradient=ft.LinearGradient(
+                begin=ft.alignment.top_center,
+                end=ft.alignment.bottom_center,
+                colors=[
+                    self.get_theme_color("bg_primary"),
+                    self.get_theme_color("bg_secondary")
+                ]
+            )
         )
 
-        page.add(appbar, main_content)
-        page.on_resize = self.on_page_resize
-        page.on_close = self.on_close
-
-        self.start_connection_checker()
-        self._load_user_preferences()
+        page.add(main_container)
 
     def on_page_resize(self, e):
         if self.page.width < 600:
@@ -320,9 +388,34 @@ class FleetApp:
         self.page.update()
 
     def update_layout(self):
-        max_width = min(self.page.width, self.config.max_width)
-        for msg in self.chat_history.controls:
-            msg.width = max_width * self.config.message_width_ratio
+        """Actualiza el layout y espaciado de mensajes"""
+        try:
+            available_width = self.page.width if self.page else self.config.max_width
+            max_width = min(available_width, self.config.max_width)
+            message_width = max_width * (0.9 if available_width < 600 else self.config.message_width_ratio)
+            
+            # Actualizar contenedor del chat
+            if self.chat_container:
+                self.chat_container.width = available_width
+                
+            # Actualizar mensajes
+            for msg in self.chat_history.controls:
+                if hasattr(msg, 'content'):
+                    msg.width = message_width
+                    if hasattr(msg.content, 'content'):
+                        msg.content.width = message_width
+                        
+            # Ajustar espaciado
+            self.chat_history.spacing = self.config.message_spacing
+            
+            # Actualizar campo de entrada
+            if hasattr(self, 'input_field'):
+                self.input_field.width = available_width * 0.8
+                
+            self.page.update()
+            
+        except Exception as e:
+            logger.error(f"Error actualizando layout: {e}")
 
     def update_settings_view(self):
         if hasattr(self, 'settings_view'):
@@ -338,77 +431,95 @@ class FleetApp:
             self.page.update()
 
     def send_message(self, e):
-        message = self.input_field.value
+        message = self.input_field.value.strip()
         if not message:
             return
-        self.input_field.value = ""
-        self.add_message_to_chat(message, is_user=True)
-        response = self.nlp_service.process_input(message)
-        self.add_message_to_chat(response, is_user=False)
-        self.page.update()
-
-    def add_message_to_chat(self, message, is_user):
-        max_width = min(
-            self.page.width * self.config.message_width_ratio if self.page else 300,
-            self.config.max_width * self.config.message_width_ratio
-        )
-        
-        # Determinar colores basados en el tema
-        is_dark = self.page.theme_mode == "DARK"
-        text_color = ft.colors.WHITE if is_user or is_dark else ft.colors.BLACK
-        bg_color = (ft.colors.BLUE_700 if is_user else 
-                   (ft.colors.SURFACE_VARIANT if is_dark else ft.colors.WHITE))
-        
-        msg_container = ft.Container(
-            content=ft.Text(
-                value=message,
-                size=self.config.font_size,
-                color=text_color,
-                selectable=True,
-                weight=ft.FontWeight.W_400,
-                overflow=ft.TextOverflow.CLIP,
-                text_align=ft.TextAlign.LEFT,
-            ),
-            bgcolor=bg_color,
-            border_radius=ft.border_radius.all(15),
-            padding=ft.padding.all(15),
-            width=max_width,
-            shadow=ft.BoxShadow(
-                spread_radius=1,
-                blur_radius=3,
-                color=ft.colors.BLACK12,
-                offset=ft.Offset(0, 2),
-            ),
-            animate=ft.animation.Animation(300, ft.AnimationCurve.EASE_OUT),
-            opacity=0,
-            offset=ft.transform.Offset(0, 0.5),
-        )
-
-        wrapper = ft.Container(
-            content=msg_container,
-            alignment=ft.alignment.center_right if is_user else ft.alignment.center_left,
-            margin=ft.margin.symmetric(vertical=4, horizontal=20),
-            width=self.page.width * self.config.message_width_ratio if self.page else 300,
-        )
-
+            
         try:
-            self.chat_history.controls.append(wrapper)
-            self.state.add_message(message, is_user)
+            # Limpiar el campo de entrada
+            self.input_field.value = ""
+            self.page.update()
             
-            # Animación con threading
-            def animate_message():
-                time.sleep(0.05)  # Pequeño delay para la animación
-                msg_container.opacity = 1
-                msg_container.offset = ft.transform.Offset(0, 0)
-                self.page.update()
+            # Mostrar mensaje del usuario
+            self.add_message_to_chat(message, is_user=True)
             
-            threading.Thread(target=animate_message, daemon=True).start()
+            # Procesar y mostrar respuesta
+            response = self.nlp_service.process_input(message)
+            if response and isinstance(response, str):
+                self.add_message_to_chat(response, is_user=False)
+            else:
+                self.add_message_to_chat("Lo siento, hubo un error al procesar tu mensaje.", is_user=False)
+                
+            self.page.update()
             
         except Exception as e:
-            logger.error(f"Error al agregar mensaje: {e}")
+            logger.error(f"Error enviando mensaje: {e}")
+            self.add_message_to_chat("Error al procesar el mensaje.", is_user=False)
+            self.page.update()
 
-        if not is_user and self.config.enable_voice:
-            self.voice_queue.put(message)
+    def add_message_to_chat(self, message: str, is_user: bool):
+        """Crear tarjeta de mensaje estilo Google Assistant"""
+        card = ft.Card(
+            content=ft.Container(
+                content=ft.Column([
+                    # Icono y contenido
+                    ft.Row([
+                        ft.Container(
+                            content=ft.Icon(
+                                ft.icons.PERSON if is_user else ft.icons.ASSISTANT,
+                                color=self.get_theme_color("accent"),
+                                size=20
+                            ),
+                            margin=ft.margin.only(right=12)
+                        ),
+                        ft.Text(
+                            message,
+                            size=16,
+                            color=self.get_theme_color("text_primary"),
+                            selectable=True,
+                            weight=ft.FontWeight.W_400
+                        )
+                    ]),
+                    # Acciones opcionales
+                    ft.Row(
+                        [
+                            ft.TextButton(
+                                "Copiar",
+                                icon=ft.icons.COPY,
+                                on_click=lambda _: self.page.set_clipboard(message)
+                            ) if not is_user else ft.Container()
+                        ],
+                        alignment=ft.MainAxisAlignment.END
+                    ) if not is_user else ft.Container()
+                ]),
+                padding=16
+            ),
+            elevation=0,
+            color=self.get_theme_color("card_bg"),
+            margin=ft.margin.symmetric(horizontal=is_user and 40 or 0),
+            surface_tint_color=self.get_theme_color("accent" if is_user else "surface")
+        )
+
+        # Animar entrada
+        card.opacity = 0
+        card.offset = ft.transform.Offset(0, 0.5)
+        self.chat_history.controls.append(card)
+        
+        def animate():
+            time.sleep(0.05)
+            card.opacity = 1
+            card.offset = ft.transform.Offset(0, 0)
+            self.page.update()
+
+        threading.Thread(target=animate, daemon=True).start()
+
+    def get_theme_color(self, color_name: str) -> str:
+        """Obtiene el color del tema actual"""
+        theme_data = self.config.themes.get(
+            self.config.theme_mode.lower(),
+            self.config.themes["light"]
+        )
+        return getattr(theme_data, color_name, "#000000")
 
     def toggle_theme(self, e):
         self.config.theme_mode = "dark" if e.control.value else "light"
@@ -434,3 +545,8 @@ class FleetApp:
             self.engine.stop()
         if self.connection_thread:
             self.connection_thread.join(timeout=1)
+
+    def _on_settings_saved(self):
+        """Callback cuando se guardan las configuraciones"""
+        self.nlp_service.reload_config()
+        self.update()

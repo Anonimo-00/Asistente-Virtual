@@ -2,31 +2,54 @@
     "app": {
         "name": "Central",
         "language": "es",
-        "timezone": "Europe/Madrid"
+        "timezone": "Colombia/Bogota"
     },
     "ui": {
-        "max_width": 800,
-        "message_width_ratio": 0.7,
+        "max_width": 1200,
+        "min_width": 400,
+        "message_width_ratio": 0.85,
         "theme_mode": "dark",
         "enable_voice": true,
         "voice_lang": "es",
+        "spacing": {
+            "chat_padding": 20,
+            "message_spacing": 12,
+            "input_padding": 16
+        },
+        "border_radius": {
+            "message": 20,
+            "input": 24,
+            "button": 12
+        },
         "themes": {
             "dark": {
-                "bg_primary": "#1E1E1E",
-                "bg_secondary": "#252525",
-                "accent": "#007AFF",
-                "text_primary": "#FFFFFF",
-                "text_secondary": "#B0B0B0",
-                "surface": "#2D2D2D"
+                "bg_primary": "#202124",
+                "bg_secondary": "#303134",
+                "accent": "#8ab4f8",
+                "text_primary": "#e8eaed",
+                "text_secondary": "#9aa0a6",
+                "surface": "#3c4043",
+                "card_bg": "rgba(32, 33, 36, 0.8)",
+                "error": "#f28b82",
+                "success": "#81c995"
             },
             "light": {
-                "bg_primary": "#F5F5F5",
-                "bg_secondary": "#FFFFFF",
-                "accent": "#007AFF",
-                "text_primary": "#000000",
-                "text_secondary": "#666666",
-                "surface": "#EEEEEE"
+                "bg_primary": "#ffffff",
+                "bg_secondary": "#f8f9fa",
+                "accent": "#1a73e8",
+                "text_primary": "#202124",
+                "text_secondary": "#5f6368",
+                "surface": "#e8eaed",
+                "card_bg": "rgba(255, 255, 255, 0.9)",
+                "error": "#d93025",
+                "success": "#188038"
             }
+        },
+        "animations": {
+            "duration": 300,
+            "curve": "ease_out",
+            "initial_scale": 0.95,
+            "initial_opacity": 0
         }
     },
     "nlp": {
