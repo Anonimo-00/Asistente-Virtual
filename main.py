@@ -2,6 +2,8 @@ import flet as ft
 import logging
 import time
 import threading
+import asyncio
+import platform
 from integrations.ui.flet_app import FleetApp
 from services.nlp.nlp_service import NLPService
 from utils.wifi_monitor import start_wifi_monitor
@@ -59,34 +61,42 @@ def print_global_vars():
         except Exception as e:
             logger.error(f"Error imprimiendo variables: {e}")
 
-def main(page: ft.Page):
+def main():
     try:
-        # Asegurar que is_active está configurado antes de iniciar los monitores
-        set_global_var("is_active", True)
-        
-        # Iniciar monitores
-        vars_monitor = threading.Thread(target=print_global_vars, daemon=True)
-        vars_monitor.start()
-        logger.info("Monitor de variables iniciado")
-        
-        wifi_monitor_thread = start_wifi_monitor()
-        logger.info("Monitor WiFi iniciado")
-        
-        # Inicializar servicios
+        # Configurar event loop
+        if platform.system() == 'Windows':
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+        # Inicializar servicios primero
         nlp_service = NLPService()
+        
+        # Crear la aplicación
         app = FleetApp(nlp_service)
         
-        # Configurar página y UI
-        page.title = "Asistente Virtual"
-        page.window_width = 800
-        page.window_min_width = 400
+        # Ejecutar en modo normal (no async)
+        ft.app(
+            target=app.main,
+            assets_dir="assets",
+            upload_dir="uploads",
+            view=ft.AppView.NATIVE
+        )
         
-        # Iniciar la UI
-        app.main(page)
-        
+    except KeyboardInterrupt:
+        logger.info("Aplicación interrumpida por el usuario")
     except Exception as e:
-        logger.error(f"Error iniciando la aplicación: {e}")
-        raise
+        logger.error(f"Error fatal: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    # Iniciar monitores en threads separados
+    set_global_var("is_active", True)
+    
+    vars_monitor = threading.Thread(target=print_global_vars, daemon=True)
+    vars_monitor.start()
+    logger.info("Monitor de variables iniciado")
+    
+    wifi_monitor_thread = start_wifi_monitor()
+    logger.info("Monitor WiFi iniciado")
+    
+    # Iniciar la aplicación
+    main()

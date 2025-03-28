@@ -1,0 +1,17 @@
+{
+    "nombre": "Usuario",
+    "preferencias": {
+        "tema": "dark",
+        "idioma": "es",
+        "tamano_fuente": 24.0,
+        "voz_activada": false
+    },
+    "datos_personales": {
+        "ciudad": "Madrid"
+    },
+    "intereses": [],
+    "historial": {
+        "conversaciones": [],
+        "comandos": []
+    }
+}

@@ -23,26 +23,30 @@
         },
         "themes": {
             "dark": {
-                "bg_primary": "#202124",
-                "bg_secondary": "#303134",
+                "bg_primary": "#121212",
+                "bg_secondary": "#1E1E1E",
                 "accent": "#8ab4f8",
-                "text_primary": "#e8eaed",
-                "text_secondary": "#9aa0a6",
-                "surface": "#3c4043",
-                "card_bg": "rgba(32, 33, 36, 0.8)",
-                "error": "#f28b82",
-                "success": "#81c995"
+                "text_primary": "#FFFFFF",
+                "text_secondary": "#B3B3B3",
+                "surface": "#2D2D2D",
+                "card_bg": "rgba(32, 33, 36, 0.9)",
+                "error": "#CF6679",
+                "success": "#03DAC6",
+                "divider": "#3C4043",
+                "shadow": "rgba(0, 0, 0, 0.3)"
             },
             "light": {
-                "bg_primary": "#ffffff",
-                "bg_secondary": "#f8f9fa",
-                "accent": "#1a73e8",
+                "bg_primary": "#FAFAFA",
+                "bg_secondary": "#FFFFFF",
+                "accent": "#1A73E8",
                 "text_primary": "#202124",
-                "text_secondary": "#5f6368",
-                "surface": "#e8eaed",
-                "card_bg": "rgba(255, 255, 255, 0.9)",
-                "error": "#d93025",
-                "success": "#188038"
+                "text_secondary": "#5F6368",
+                "surface": "#F8F9FA",
+                "card_bg": "rgba(255, 255, 255, 0.95)",
+                "error": "#B00020",
+                "success": "#0F9D58",
+                "divider": "#E0E0E0",
+                "shadow": "rgba(0, 0, 0, 0.1)"
             }
         },
         "animations": {
@@ -50,10 +54,17 @@
             "curve": "ease_out",
             "initial_scale": 0.95,
             "initial_opacity": 0
+        },
+        "performance": {
+            "enable_animations": true,
+            "animation_duration": 200,
+            "lazy_loading": true,
+            "cache_messages": true,
+            "max_cached_messages": 100
         }
     },
     "nlp": {
-        "model": "gemini-1.5-flash",
+        "model": "gemini-2.5-pro-exp-03-25",
         "temperature": 0.7,
         "max_tokens": 150
     },

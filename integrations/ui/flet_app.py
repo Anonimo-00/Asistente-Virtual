@@ -217,7 +217,12 @@ class FleetApp:
         threading.Thread(target=listen_thread, daemon=True).start()
 
     def run(self):
-        ft.app(target=self.main)
+        """Método de inicio simplificado"""
+        ft.app(target=self.main, view=ft.AppView.NATIVE)
+
+    async def run_async(self):
+        """Versión asíncrona del método run"""
+        await ft.app_async(target=self.main)
 
     def toggle_settings(self, e):
         """Muestra/oculta la ventana de configuración"""
@@ -304,81 +309,115 @@ class FleetApp:
         )
 
     def main(self, page: ft.Page):
-        self.page = page
-        page.title = "Central Assistant"
-        page.window_width = self.config.max_width
-        page.window_min_width = self.config.min_width
-        page.theme_mode = getattr(ft.ThemeMode, self.config.theme_mode.upper())
-        page.padding = 0
-        page.bgcolor = self.get_theme_color("bg_primary")
+        """Método principal de la aplicación"""
+        try:
+            self.page = page
+            page.title = "Central Assistant"
+            page.window_width = self.config.max_width
+            page.window_min_width = 400
+            page.theme_mode = getattr(ft.ThemeMode, self.config.theme_mode.upper())
+            page.padding = 0
+            page.bgcolor = self.get_theme_color("bg_primary")
+            page.window_center()  # Centrar la ventana
+            
+            # Inicializar componentes principales
+            self.initialize_ui()
+            
+            # Iniciar verificación de conexión
+            self.start_connection_checker()
+            
+            # Cargar preferencias
+            self._load_user_preferences()
+            
+        except Exception as e:
+            logger.error(f"Error inicializando la UI: {e}")
+            sys.exit(1)
 
-        # Crear barra de entrada flotante estilo Google Assistant
-        input_container = ft.Container(
-            content=ft.Row(
-                [
-                    ft.IconButton(
-                        icon=ft.icons.ASSISTANT,
-                        icon_color=self.get_theme_color("accent"),
-                        icon_size=24,
-                        tooltip="Assistant"
-                    ),
-                    ft.TextField(
-                        ref=self.input_field,
-                        hint_text="¿Cómo puedo ayudarte?",
-                        border_radius=24,
-                        filled=True,
-                        expand=True,
-                        text_size=16,
-                        content_padding=20,
-                        cursor_color=self.get_theme_color("accent"),
-                        bgcolor=self.get_theme_color("surface"),
-                        border_color="transparent",
-                        focused_border_color=self.get_theme_color("accent")
-                    ),
-                    self.mic_button,
-                    self.send_button
+    def initialize_ui(self):
+        """Inicialización separada de la UI"""
+        try:
+            # Barra superior con acciones
+            appbar = ft.AppBar(
+                leading=ft.Icon(ft.icons.CHAT_ROUNDED),
+                title=ft.Text("Central Assistant", size=20, weight=ft.FontWeight.BOLD),
+                center_title=False,
+                bgcolor=self.get_theme_color("bg_secondary"),
+                elevation=0.5,
+                actions=[
+                    self.settings_button,
+                    self.connection_icon_online,
+                    self.connection_icon_offline,
                 ],
-                alignment=ft.MainAxisAlignment.CENTER,
-                spacing=8
-            ),
-            padding=20,
-            margin=ft.margin.only(left=20, right=20, bottom=20),
-            bgcolor=self.get_theme_color("bg_secondary"),
-            border_radius=28,
-            shadow=ft.BoxShadow(
-                spread_radius=1,
-                blur_radius=8,
-                color=ft.colors.with_opacity(0.1, ft.colors.BLACK),
-                offset=ft.Offset(0, 2)
             )
-        )
 
-        # Actualizar el diseño de los mensajes
-        self.chat_history = ft.ListView(
-            expand=True,
-            spacing=16,
-            padding=20,
-            auto_scroll=True
-        )
-
-        # Contenedor principal con efecto de fondo difuminado
-        main_container = ft.Container(
-            content=ft.Column([
-                self.chat_history,
-                input_container
-            ]),
-            expand=True,
-            gradient=ft.LinearGradient(
-                begin=ft.alignment.top_center,
-                end=ft.alignment.bottom_center,
-                colors=[
-                    self.get_theme_color("bg_primary"),
-                    self.get_theme_color("bg_secondary")
-                ]
+            # Barra de entrada flotante estilo Google Assistant
+            input_container = ft.Container(
+                content=ft.Row(
+                    [
+                        ft.IconButton(
+                            icon=ft.icons.ASSISTANT,
+                            icon_color=self.get_theme_color("accent"),
+                            icon_size=24,
+                            tooltip="Assistant"
+                        ),
+                        self.input_field,
+                        self.mic_button,
+                        self.send_button
+                    ],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=8
+                ),
+                padding=20,
+                margin=ft.margin.only(left=20, right=20, bottom=20),
+                bgcolor=self.get_theme_color("bg_secondary"),
+                border_radius=28,
+                shadow=ft.BoxShadow(
+                    spread_radius=1,
+                    blur_radius=8,
+                    color=ft.colors.with_opacity(0.1, ft.colors.BLACK),
+                    offset=ft.Offset(0, 2)
+                )
             )
-        )
 
-        page.add(main_container)
+            # Contenedor del chat con fondo degradado
+            chat_container = ft.Container(
+                content=ft.Column([
+                    self.chat_history,
+                    input_container
+                ]),
+                expand=True,
+                gradient=ft.LinearGradient(
+                    begin=ft.alignment.top_center,
+                    end=ft.alignment.bottom_center,
+                    colors=[
+                        self.get_theme_color("bg_primary"),
+                        self.get_theme_color("bg_secondary")
+                    ]
+                )
+            )
+            self.chat_container = chat_container
+
+            # Vista de configuración
+            self.settings_view = self.create_settings_view()
+            
+            # Contenedor principal
+            main_content = ft.Row(
+                [
+                    chat_container,
+                    self.settings_view
+                ],
+                expand=True,
+            )
+
+            self.page.add(appbar, main_content)
+            self.page.on_resize = self.on_page_resize
+            self.page.on_close = self.on_close
+
+            self.update_layout()
+            
+        except Exception as e:
+            logger.error(f"Error en initialize_ui: {e}")
+            raise
 
     def on_page_resize(self, e):
         if self.page.width < 600:
@@ -430,7 +469,7 @@ class FleetApp:
                                           if self.settings_visible else self.page.width)
             self.page.update()
 
-    def send_message(self, e):
+    async def send_message(self, e):
         message = self.input_field.value.strip()
         if not message:
             return
@@ -440,21 +479,29 @@ class FleetApp:
             self.input_field.value = ""
             self.page.update()
             
+            # Guardar mensaje en el estado
+            self.state.add_message(message, is_user=True)
+            
             # Mostrar mensaje del usuario
             self.add_message_to_chat(message, is_user=True)
             
             # Procesar y mostrar respuesta
-            response = self.nlp_service.process_input(message)
+            response = await self.nlp_service.process_input(message)
             if response and isinstance(response, str):
+                self.state.add_message(response, is_user=False)
                 self.add_message_to_chat(response, is_user=False)
             else:
-                self.add_message_to_chat("Lo siento, hubo un error al procesar tu mensaje.", is_user=False)
+                error_msg = "Lo siento, hubo un error al procesar tu mensaje."
+                self.state.add_message(error_msg, is_user=False)
+                self.add_message_to_chat(error_msg, is_user=False)
                 
             self.page.update()
             
         except Exception as e:
             logger.error(f"Error enviando mensaje: {e}")
-            self.add_message_to_chat("Error al procesar el mensaje.", is_user=False)
+            error_msg = "Error al procesar el mensaje."
+            self.state.add_message(error_msg, is_user=False)
+            self.add_message_to_chat(error_msg, is_user=False)
             self.page.update()
 
     def add_message_to_chat(self, message: str, is_user: bool):
@@ -550,3 +597,121 @@ class FleetApp:
         """Callback cuando se guardan las configuraciones"""
         self.nlp_service.reload_config()
         self.update()
+
+    def create_message_card(self, message: str, is_user: bool) -> ft.Container:
+        return ft.Container(
+            content=ft.Column([
+                ft.Row([
+                    ft.Container(
+                        content=ft.Icon(
+                            ft.icons.PERSON if is_user else ft.icons.ASSISTANT,
+                            color=self.get_theme_color("accent"),
+                            size=24
+                        ),
+                        margin=ft.margin.only(right=16),
+                        padding=8,
+                        border_radius=20,
+                        bgcolor=self.get_theme_color("surface")
+                    ),
+                    ft.Container(
+                        content=ft.Text(
+                            message,
+                            size=16,
+                            color=self.get_theme_color("text_primary"),
+                            selectable=True,
+                            weight=ft.FontWeight.W_400,
+                            text_align=ft.TextAlign.LEFT
+                        ),
+                        expand=True
+                    )
+                ]),
+                ft.Row(
+                    [
+                        ft.IconButton(
+                            icon=ft.icons.COPY,
+                            tooltip="Copiar",
+                            icon_color=self.get_theme_color("accent"),
+                            on_click=lambda _: self.page.set_clipboard(message)
+                        ) if not is_user else ft.Container(),
+                        ft.IconButton(
+                            icon=ft.icons.VOLUME_UP,
+                            tooltip="Escuchar",
+                            icon_color=self.get_theme_color("accent"),
+                            on_click=lambda _: self.speak_text(message)
+                        ) if not is_user else ft.Container()
+                    ],
+                    alignment=ft.MainAxisAlignment.END
+                ) if not is_user else ft.Container()
+            ]),
+            padding=16,
+            margin=ft.margin.symmetric(
+                horizontal=is_user and 32 or 8,
+                vertical = 4
+            ),
+            border_radius=12,
+            bgcolor=self.get_theme_color(
+                "surface" if is_user else "card_bg"
+            ),
+            ink=True,
+            animate=ft.animation.Animation(300, "easeOut"),
+            shadow=ft.BoxShadow(
+                spread_radius=0,
+                blur_radius=8,
+                color=self.get_theme_color("shadow"),
+                offset=ft.Offset(0, 2)
+            )
+        )
+
+    def create_input_bar(self) -> ft.Container:
+        return ft.Container(
+            content=ft.Row([
+                ft.IconButton(
+                    icon=ft.icons.ASSISTANT,
+                    icon_color=self.get_theme_color("accent"),
+                    icon_size=24,
+                    tooltip="Assistant"
+                ),
+                ft.TextField(
+                    ref=self.input_field,
+                    hint_text="Escribe un mensaje...",
+                    border_radius=24,
+                    filled=True,
+                    expand=True,
+                    text_size=16,
+                    bgcolor=self.get_theme_color("surface"),
+                    color=self.get_theme_color("text_primary"),
+                    cursor_color=self.get_theme_color("accent"),
+                    border_color="transparent",
+                    focused_border_color=self.get_theme_color("accent")
+                ),
+                self.mic_button,
+                self.send_button
+            ], spacing=8),
+            padding=ft.padding.all(16),
+            margin=ft.margin.only(
+                left=16, right=16, bottom=16, top=8
+            ),
+            bgcolor=self.get_theme_color("bg_secondary"),
+            border_radius=28,
+            shadow=self.create_elevation_shadow(2)
+        )
+
+    def create_elevation_shadow(self, elevation: int) -> ft.BoxShadow:
+        color = self.get_theme_color("shadow")
+        return ft.BoxShadow(
+            spread_radius=0,
+            blur_radius=elevation * 4,
+            color=color,
+            offset=ft.Offset(0, elevation)
+        )
+
+    async def start_connection_checker_async(self):
+        """Versión asíncrona del checker de conexión"""
+        while self.connection_check_active and hasattr(self, 'page'):
+            try:
+                await self.check_internet_connection_async()
+                await self.update_connection_status_async()
+                await asyncio.sleep(1)
+            except Exception as e:
+                logger.error(f"Error en connection checker: {e}")
+                await asyncio.sleep(1)
