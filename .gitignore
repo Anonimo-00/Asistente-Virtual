@@ -1,9 +1,6 @@
-# Carpeta de entorno virtual
+# Carpetas de sistema
 venv/
-env/
-.env/
 
-# Carpetas de cache de Python
 __pycache__/
 *.py[cod]
 .qodo
@@ -12,6 +9,15 @@ __pycache__/
 .vscode/
 .idea/
 *.swp
+
+# Carpetas de cache y temporales
+cache/
+*.cache
+__pycache__/
+logs/
+*.log
+*.tmp
+temp/
 
 # Carpetas de dependencias y compilados
 node_modules/

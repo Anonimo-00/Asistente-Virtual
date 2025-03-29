@@ -11,7 +11,7 @@ import pyttsx3
 import threading
 import queue
 import urllib.request
-from global_vars import get_global_var
+from global_vars import get_global_var, set_global_var
 from .config_window import ConfigWindow  # Cambiar esta línea - importación correcta
 from .settings_view import SearchSettingsView  # Moved after flet imports
 
@@ -51,27 +51,80 @@ class UIConfig(BaseModel):
     border_radius: UIBorderRadius = UIBorderRadius()
     themes: Dict[str, UITheme] = {
         "dark": UITheme(
-            bg_primary="#ffffff",
-            bg_secondary="#f8f9fa",
-            accent="#4285f4",
-            text_primary="#202124",
-            text_secondary="#5f6368",
-            surface="#e8eaed",
-            error="#d93025",
-            success="#188038"
+            bg_primary="#121212",
+            bg_secondary="#1E1E1E",
+            accent="#8ab4f8",
+            text_primary="#FFFFFF",
+            text_secondary="#B3B3B3",
+            surface="#2D2D2D",
+            error="#CF6679",
+            success="#03DAC6"
         ),
         "light": UITheme(
-            bg_primary="#ffffff",
-            bg_secondary="#f8f9fa",
-            accent="#1a73e8",
+            bg_primary="#FFFFFF",
+            bg_secondary="#F8F9FA",
+            accent="#1A73E8",
             text_primary="#202124",
-            text_secondary="#5f6368",
-            surface="#e8eaed",
-            error="#d93025",
-            success="#188038"
+            text_secondary="#5F6368",
+            surface="#FFFFFF",
+            error="#B00020",
+            success="#0F9D58"
         )
-
     }
+
+    def toggle_theme(self, e):
+        """Toggle de tema optimizado con actualización completa"""
+        try:
+            new_theme = "dark" if e.control.value else "light"
+            if new_theme == self.config.theme_mode:
+                return
+                
+            # Actualizar tema en todos los niveles
+            self.config.theme_mode = new_theme
+            self._theme_color_cache.clear()
+            set_global_var("theme_mode", new_theme)
+            
+            # Actualizar página
+            self.page.theme_mode = getattr(ft.ThemeMode, new_theme.upper())
+            self.page.bgcolor = self.get_theme_color("bg_primary")
+            
+            # Actualizar todos los componentes recursivamente
+            self._update_component_colors(self.page)
+            
+            # Guardar en preferencias
+            UserManager().guardar_dato("preferencias", "tema", new_theme)
+            self.page.update()
+            
+        except Exception as e:
+            logger.error(f"Error cambiando tema: {e}")
+
+    def _update_component_colors(self, component):
+        """Actualiza recursivamente los colores de todos los componentes"""
+        try:
+            if hasattr(component, 'controls'):
+                for control in component.controls:
+                    self._update_component_colors(control)
+                    
+            # Actualizar colores según el tipo de componente
+            if isinstance(component, ft.Container):
+                component.bgcolor = self.get_theme_color("bg_secondary")
+            elif isinstance(component, ft.Text):
+                component.color = self.get_theme_color("text_primary")
+            elif isinstance(component, ft.IconButton):
+                component.icon_color = self.get_theme_color("accent")
+            elif isinstance(component, ft.TextField):
+                component.bgcolor = self.get_theme_color("input_bg")
+                component.color = self.get_theme_color("input_text")
+            
+            # Actualizar propiedades especiales
+            if hasattr(component, 'gradient'):
+                component.gradient.colors = [
+                    self.get_theme_color("bg_primary"),
+                    self.get_theme_color("bg_secondary")
+                ]
+                
+        except Exception as e:
+            logger.error(f"Error actualizando colores: {e}")
 
 class FleetApp:
     def __init__(self, nlp_service):
@@ -137,6 +190,8 @@ class FleetApp:
             visible=not self.is_online
         )
         self.search_settings = SearchSettingsView(save_callback=self._on_settings_saved)
+        self._theme_color_cache = {}
+        self._last_theme_mode = None
 
     def check_internet_connection(self):
         self.is_online = get_global_var("wifi_status")
@@ -259,14 +314,16 @@ class FleetApp:
         """Carga y aplica preferencias de forma optimizada"""
         try:
             user_manager = UserManager()
-            theme = user_manager.obtener_dato("preferencias", "tema") or "dark"
             
-            # Aplicar tema solo si ha cambiado
+            # Obtener tema de variables globales primero
+            theme = get_global_var("theme_mode") or user_manager.obtener_dato("preferencias", "tema") or "dark"
+            
             if theme != self.config.theme_mode:
                 self.config.theme_mode = theme
                 self.page.theme_mode = theme.upper()
                 self.page.bgcolor = "#1E1E1E" if theme == "dark" else "#F5F5F5"
-                
+                set_global_var("theme_mode", theme)
+            
             # Actualizar otras preferencias
             self.config.font_size = user_manager.obtener_dato("preferencias", "tamano_fuente") or 16
             voice_enabled = user_manager.obtener_dato("preferencias", "voz_activada") or False
@@ -294,33 +351,60 @@ class FleetApp:
                     color=self.get_theme_color("text_primary")
                 ),
                 ft.Divider(color=self.get_theme_color("divider")),
-                ft.Switch(
-                    label="Modo oscuro",
-                    value=self.config.theme_mode == "dark",
-                    on_change=self.toggle_theme,
-                    label_style=ft.TextStyle(
-                        color=self.get_theme_color("text_primary")
-                    )
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text(
+                            "Tema",
+                            size=16,
+                            color=self.get_theme_color("text_primary")
+                        ),
+                        ft.Switch(
+                            label="Modo oscuro",
+                            value=self.config.theme_mode == "dark",
+                            on_change=self.toggle_theme,
+                        ),
+                    ]),
+                    padding=10,
                 ),
-                ft.Switch(
-                    label="Voz activada",
-                    value=self.config.enable_voice,
-                    on_change=self.toggle_voice,
-                    label_style=ft.TextStyle(
-                        color=self.get_theme_color("text_primary")
-                    )
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text(
+                            "Voz",
+                            size=16,
+                            color=self.get_theme_color("text_primary")
+                        ),
+                        ft.Switch(
+                            label="Activar voz",
+                            value=self.config.enable_voice,
+                            on_change=self.toggle_voice,
+                        ),
+                    ]),
+                    padding=10,
                 ),
-                ft.Slider(
-                    label="Tamaño de fuente",
-                    min=12,
-                    max=24,
-                    value=self.config.font_size,
-                    on_change=self.change_font_size,
-                    label_style=ft.TextStyle(
-                        color=self.get_theme_color("text_primary")
-                    ),
-                    active_color=self.get_theme_color("accent"),
-                    inactive_color=self.get_theme_color("divider")
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text(
+                            "Tamaño de fuente",
+                            size=16,
+                            color=self.get_theme_color("text_primary")
+                        ),
+                        ft.Row([
+                            ft.Icon(
+                                ft.icons.FORMAT_SIZE,
+                                color=self.get_theme_color("text_secondary")
+                            ),
+                            ft.Slider(  # Slider corregido
+                                min=12,
+                                max=24,
+                                value=self.config.font_size,
+                                on_change=self.change_font_size,
+                                expand=True,
+                                active_color=self.get_theme_color("accent"),
+                                inactive_color=self.get_theme_color("divider")
+                            ),
+                        ]),
+                    ]),
+                    padding=10,
                 ),
                 self.search_settings,
             ]),
@@ -455,32 +539,42 @@ class FleetApp:
         self.page.update()
 
     def update_layout(self):
-        """Actualiza el layout y espaciado de mensajes"""
+        """Actualiza el layout y espaciado de mensajes de forma optimizada"""
         try:
-            available_width = self.page.width if self.page else self.config.max_width
+            if not hasattr(self, 'page') or not self.page:
+                return
+                
+            available_width = self.page.width or self.config.max_width
             max_width = min(available_width, self.config.max_width)
             message_width = max_width * (0.9 if available_width < 600 else self.config.message_width_ratio)
             
-            # Actualizar contenedor del chat
-            if self.chat_container:
-                self.chat_container.width = available_width
+            # Actualizar solo si hay cambios
+            if hasattr(self, '_last_width') and self._last_width == message_width:
+                return
                 
-            # Actualizar mensajes
+            self._last_width = message_width
+            
+            # Batch updates para mejor rendimiento
+            updates_needed = False
+            
+            if self.chat_container and self.chat_container.width != available_width:
+                self.chat_container.width = available_width
+                updates_needed = True
+            
+            # Actualizar mensajes solo si necesario
             for msg in self.chat_history.controls:
                 if hasattr(msg, 'content'):
-                    msg.width = message_width
+                    if msg.width != message_width:
+                        msg.width = message_width
+                        updates_needed = True
                     if hasattr(msg.content, 'content'):
-                        msg.content.width = message_width
-                        
-            # Ajustar espaciado
-            self.chat_history.spacing = self.config.message_spacing
+                        if msg.content.width != message_width:
+                            msg.content.width = message_width
+                            updates_needed = True
             
-            # Actualizar campo de entrada
-            if hasattr(self, 'input_field'):
-                self.input_field.width = available_width * 0.8
+            if updates_needed:
+                self.page.update()
                 
-            self.page.update()
-            
         except Exception as e:
             logger.error(f"Error actualizando layout: {e}")
 
@@ -498,54 +592,72 @@ class FleetApp:
             self.page.update()
 
     async def send_message(self, e):
-        message = self.input_field.value.strip()
+        """Envío de mensajes optimizado y con mejor manejo de errores"""
+        if not hasattr(self, 'input_field') or not self.input_field:
+            return
+            
+        message = (self.input_field.value or "").strip()
         if not message:
             return
             
         try:
-            # Limpiar el campo de entrada
-            self.input_field.value = ""
+            # Desactivar campo de entrada mientras procesa
+            self.input_field.disabled = True
+            self.send_button.disabled = True
             self.page.update()
             
-            # Guardar mensaje en el estado
+            # Procesar mensaje
+            self.input_field.value = ""
             self.state.add_message(message, is_user=True)
-            
-            # Mostrar mensaje del usuario
             self.add_message_to_chat(message, is_user=True)
             
-            # Procesar y mostrar respuesta
-            response = await self.nlp_service.process_input(message)
-            if response and isinstance(response, str):
-                self.state.add_message(response, is_user=False)
-                self.add_message_to_chat(response, is_user=False)
-            else:
-                error_msg = "Lo siento, hubo un error al procesar tu mensaje."
-                self.state.add_message(error_msg, is_user=False)
-                self.add_message_to_chat(error_msg, is_user=False)
+            # Obtener respuesta con timeout
+            try:
+                response = await asyncio.wait_for(
+                    self.nlp_service.process_input(message),
+                    timeout=10.0
+                )
                 
-            self.page.update()
-            
+                if response and isinstance(response, str):
+                    self.state.add_message(response, is_user=False)
+                    self.add_message_to_chat(response, is_user=False)
+                else:
+                    raise ValueError("Respuesta inválida")
+                    
+            except asyncio.TimeoutError:
+                self.add_message_to_chat(
+                    "Lo siento, tardé demasiado en responder. Por favor intenta de nuevo.",
+                    is_user=False
+                )
+                
         except Exception as e:
             logger.error(f"Error enviando mensaje: {e}")
-            error_msg = "Error al procesar el mensaje."
-            self.state.add_message(error_msg, is_user=False)
-            self.add_message_to_chat(error_msg, is_user=False)
+            self.add_message_to_chat(
+                "Ocurrió un error al procesar tu mensaje. Por favor intenta de nuevo.",
+                is_user=False
+            )
+            
+        finally:
+            # Reactivar campos
+            self.input_field.disabled = False
+            self.send_button.disabled = False
             self.page.update()
 
     def add_message_to_chat(self, message: str, is_user: bool):
-        """Crear tarjeta de mensaje estilo Google Assistant"""
-        card = ft.Card(
+        card = ft.Container(
             content=ft.Container(
                 content=ft.Column([
-                    # Icono y contenido
                     ft.Row([
                         ft.Container(
                             content=ft.Icon(
                                 ft.icons.PERSON if is_user else ft.icons.ASSISTANT,
                                 color=self.get_theme_color("accent"),
-                                size=20
+                                size=24
                             ),
-                            margin=ft.margin.only(right=12)
+                            margin=ft.margin.only(right=12),
+                            padding=8,
+                            border_radius=20,
+                            bgcolor=self.get_theme_color("surface")
                         ),
                         ft.Text(
                             message,
@@ -555,12 +667,12 @@ class FleetApp:
                             weight=ft.FontWeight.W_400
                         )
                     ]),
-                    # Acciones opcionales
                     ft.Row(
                         [
-                            ft.TextButton(
-                                "Copiar",
+                            ft.IconButton(
                                 icon=ft.icons.COPY,
+                                icon_color=self.get_theme_color("accent"),
+                                tooltip="Copiar",
                                 on_click=lambda _: self.page.set_clipboard(message)
                             ) if not is_user else ft.Container()
                         ],
@@ -569,10 +681,16 @@ class FleetApp:
                 ]),
                 padding=16
             ),
-            elevation=0,
-            color=self.get_theme_color("card_bg"),
-            margin=ft.margin.symmetric(horizontal=is_user and 40 or 0),
-            surface_tint_color=self.get_theme_color("accent" if is_user else "surface")
+            margin=ft.margin.only(
+                left=40 if is_user else 0,
+                right=0 if is_user else 40,
+                bottom=8
+            ),
+            border_radius=20,
+            bgcolor=self.get_theme_color("card_bg"),
+            animate=ft.animation.Animation(300, "easeOut"),
+            animate_opacity=300,
+            animate_position=ft.animation.Animation(300, "easeOut"),
         )
 
         # Animar entrada
@@ -589,62 +707,140 @@ class FleetApp:
         threading.Thread(target=animate, daemon=True).start()
 
     def get_theme_color(self, color_name: str) -> str:
-        """Obtiene el color del tema actual"""
+        """Obtiene el color del tema actual con cache"""
+        cache_key = f"{self.config.theme_mode}_{color_name}"
+        if cache_key in self._theme_color_cache:
+            return self._theme_color_cache[cache_key]
+            
         theme_data = self.config.themes.get(
             self.config.theme_mode.lower(),
             self.config.themes["light"]
         )
-        return getattr(theme_data, color_name, "#000000")
+        color = getattr(theme_data, color_name, "#000000")
+        self._theme_color_cache[cache_key] = color
+        return color
 
     def toggle_theme(self, e):
+        """Toggle de tema optimizado con actualización inmediata"""
         try:
-            # Cambiar modo
-            self.config.theme_mode = "dark" if e.control.value else "light"
-            self.page.theme_mode = getattr(ft.ThemeMode, self.config.theme_mode.upper())
+            new_theme = "dark" if e.control.value else "light"
             
-            # Actualizar colores principales
+            # Evitar cambios innecesarios
+            if new_theme == self.config.theme_mode:
+                return
+                
+            # Actualizar configuración local y limpiar cache
+            self.config.theme_mode = new_theme
+            self._theme_color_cache.clear()
+            
+            # Actualizar variable global y preferencias
+            set_global_var("theme_mode", new_theme)
+            UserManager().guardar_dato("preferencias", "tema", new_theme)
+            
+            # Actualizar página inmediatamente
+            self.page.theme_mode = getattr(ft.ThemeMode, new_theme.upper())
             self.page.bgcolor = self.get_theme_color("bg_primary")
             
-            # Actualizar todos los elementos
-            self.initialize_ui()
-            self.update_layout()
+            # Actualizar elementos principales inmediatamente
+            self._quick_theme_update()
             
-            # Actualizar componentes adicionales
-            self.update_component_themes()
+            # Actualizar el resto de componentes en segundo plano
+            threading.Thread(target=self._background_theme_update, daemon=True).start()
             
-            # Guardar preferencia
-            user_manager = UserManager()
-            user_manager.guardar_dato("preferencias", "tema", self.config.theme_mode)
-            
-            self.page.update()
         except Exception as e:
             logger.error(f"Error cambiando tema: {e}")
+
+    def _quick_theme_update(self):
+        """Actualización rápida de elementos críticos"""
+        try:
+            # Actualizar contenedor principal
+            self.chat_container.bgcolor = self.get_theme_color("bg_primary")
+            
+            # Actualizar barra de entrada
+            self.input_field.bgcolor = self.get_theme_color("input_bg")
+            self.input_field.color = self.get_theme_color("text_primary")
+            
+            # Actualizar botones principales
+            for btn in [self.mic_button, self.send_button, self.settings_button]:
+                btn.icon_color = self.get_theme_color("accent")
+            
+            # Forzar actualización inmediata
+            self.page.update()
+            
+        except Exception as e:
+            logger.error(f"Error en actualización rápida: {e}")
+
+    def _background_theme_update(self):
+        """Actualización completa en segundo plano"""
+        try:
+            # Actualizar gradientes
+            self.chat_container.gradient.colors = [
+                self.get_theme_color("bg_primary"),
+                self.get_theme_color("bg_secondary")
+            ]
+            
+            # Actualizar mensajes
+            for msg in self.chat_history.controls:
+                if isinstance(msg, ft.Container):
+                    self._update_message_colors(msg)
+            
+            # Actualizar configuración y otros elementos
+            self.settings_view.bgcolor = self.get_theme_color("settings_bg")
+            self.update_component_themes()
+            
+            # Actualizar layout
+            self.update_layout()
+            self.page.update()
+            
+        except Exception as e:
+            logger.error(f"Error en actualización de fondo: {e}")
+
+    def _update_message_colors(self, msg_container):
+        """Actualiza los colores de un mensaje específico"""
+        try:
+            msg_container.bgcolor = self.get_theme_color("card_bg")
+            
+            if hasattr(msg_container, 'content') and isinstance(msg_container.content, ft.Container):
+                for control in msg_container.content.content.controls:
+                    if isinstance(control, ft.Row):
+                        for item in control.controls:
+                            if isinstance(item, ft.Text):
+                                item.color = self.get_theme_color("text_primary")
+                            elif isinstance(item, ft.Container):
+                                if isinstance(item.content, ft.Icon):
+                                    item.content.color = self.get_theme_color("accent")
+                                item.bgcolor = self.get_theme_color("surface")
+        except Exception as e:
+            logger.error(f"Error actualizando colores de mensaje: {e}")
 
     def update_component_themes(self):
         """Actualiza los temas de todos los componentes"""
         try:
-            # Actualizar barra de entrada
-            self.input_field.bgcolor = self.get_theme_color("input_bg")
-            self.input_field.color = self.get_theme_color("input_text")
+            components_to_update = {
+                "bg": [self.chat_container, self.settings_view],
+                "accent": [self.mic_button, self.send_button, self.settings_button],
+                "text": [control for control in self.chat_history.controls if isinstance(control, ft.Text)],
+                "surface": [self.input_field]
+            }
             
-            # Actualizar botones
-            for btn in [self.mic_button, self.send_button, self.settings_button]:
-                btn.bgcolor = self.get_theme_color("button_bg")
-                btn.color = self.get_theme_color("button_text")
+            for component_type, components in components_to_update.items():
+                color = self.get_theme_color({
+                    "bg": "bg_secondary",
+                    "accent": "accent",
+                    "text": "text_primary",
+                    "surface": "surface"
+                }[component_type])
                 
-            # Actualizar íconos de estado
-            self.connection_icon_online.color = self.get_theme_color("success")
-            self.connection_icon_offline.color = self.get_theme_color("error")
+                for component in components:
+                    if hasattr(component, 'bgcolor'):
+                        component.bgcolor = color
+                    if hasattr(component, 'color'):
+                        component.color = color
+                    if hasattr(component, 'icon_color'):
+                        component.icon_color = color
             
-            # Actualizar configuración
-            if self.settings_view:
-                self.settings_view.bgcolor = self.get_theme_color("settings_bg")
-                
-            # Actualizar mensajes existentes
-            for msg in self.chat_history.controls:
-                if hasattr(msg, 'bgcolor'):
-                    msg.bgcolor = self.get_theme_color("card_bg")
-                    
+            self.page.update()
+            
         except Exception as e:
             logger.error(f"Error actualizando temas de componentes: {e}")
 
@@ -737,7 +933,8 @@ class FleetApp:
                 self.mic_button,
                 self.send_button
             ], spacing=8),
-            # ...existing code...
+            padding=20,
+            margin=ft.margin.only(left=20, right=20, bottom=20),
         )
 
     def create_elevation_shadow(self, elevation: int) -> ft.BoxShadow:

@@ -2,7 +2,13 @@
     "app": {
         "name": "Central",
         "language": "es",
-        "timezone": "Colombia/Bogota"
+        "timezone": "Colombia/Bogota",
+        "directories": {
+            "cache": "cache",
+            "data": "data",
+            "logs": "logs",
+            "temp": "temp"
+        }
     },
     "ui": {
         "max_width": 1200,
@@ -41,7 +47,8 @@
                 "hover": "rgba(255, 255, 255, 0.1)",
                 "settings_bg": "#2D2D2D",
                 "settings_text": "#FFFFFF",
-                "settings_border": "#3C4043"
+                "settings_border": "#3C4043",
+                "icon_color": "#FFFFFF"
             },
             "light": {
                 "bg_primary": "#FFFFFF",
@@ -62,7 +69,8 @@
                 "hover": "rgba(0, 0, 0, 0.05)",
                 "settings_bg": "#FFFFFF",
                 "settings_text": "#202124",
-                "settings_border": "#E0E0E0"
+                "settings_border": "#E0E0E0",
+                "icon_color": "#5f6368"
             }
         },
         "animations": {
@@ -73,10 +81,16 @@
         },
         "performance": {
             "enable_animations": true,
-            "animation_duration": 200,
+            "animation_duration": 150, // Reducido para mejor rendimiento
             "lazy_loading": true,
             "cache_messages": true,
-            "max_cached_messages": 100
+            "max_cached_messages": 50, // Reducido para mejor gestión de memoria
+            "update_interval": 100, // Nuevo: intervalo mínimo entre updates
+            "batch_updates": true, // Nuevo: habilitar actualizaciones en lote
+            "memory_management": {
+                "clear_cache_interval": 300, // Limpiar cache cada 5 minutos
+                "max_history_size": 100 // Límite de mensajes en historial
+            }
         }
     },
     "nlp": {
@@ -89,11 +103,39 @@
         "auto_backup": true,
         "interval_hours": 24,
         "max_backups": 5,
-        "backup_path": "backup/",
+        "backup_path": "cache/backups/",
         "directories_to_backup": [
             "config",
             "data",
             "intents"
         ]
+    },
+    "global_vars": {
+        "save_intervals": {
+            "wifi_status": 1,
+            "theme_mode": 300,
+            "is_active": 60,
+            "last_activity": 60
+        }
+    },
+    "cache": {
+        "enabled": true,
+        "directories": {
+            "base": "cache",
+            "web": "cache/web_cache",
+            "skills": "cache/skills",
+            "global_vars": "cache/global_vars"
+        },
+        "web_cache": {
+            "enabled": true,
+            "max_age": 3600,
+            "max_size": 100000000,
+            "cleanup_interval": 86400
+        },
+        "skill_cache": {
+            "enabled": true,
+            "max_age": 7200,
+            "cleanup_interval": 43200
+        }
     }
 }

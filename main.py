@@ -6,8 +6,11 @@ import asyncio
 import platform
 from integrations.ui.flet_app import FleetApp
 from services.nlp.nlp_service import NLPService
+from integrations.skills.base_skill import BaseSkill
+from integrations.skills.conversation import ConversationSkill
+
 from utils.wifi_monitor import start_wifi_monitor
-from global_vars import set_global_var, update_global_state, _global_state
+from global_vars import set_global_var, update_global_state, _global_state, get_global_var
 import sys
 import os
 
