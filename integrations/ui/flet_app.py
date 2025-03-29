@@ -309,18 +309,17 @@ class FleetApp:
         )
 
     def main(self, page: ft.Page):
-        """Método principal de la aplicación"""
         try:
             self.page = page
+            # Configuración básica de la página
             page.title = "Central Assistant"
             page.window_width = self.config.max_width
             page.window_min_width = 400
             page.theme_mode = getattr(ft.ThemeMode, self.config.theme_mode.upper())
             page.padding = 0
             page.bgcolor = self.get_theme_color("bg_primary")
-            page.window_center()  # Centrar la ventana
             
-            # Inicializar componentes principales
+            # Inicializar UI
             self.initialize_ui()
             
             # Iniciar verificación de conexión
@@ -329,9 +328,12 @@ class FleetApp:
             # Cargar preferencias
             self._load_user_preferences()
             
+            # Actualizar la página
+            page.update()
+            
         except Exception as e:
-            logger.error(f"Error inicializando la UI: {e}")
-            sys.exit(1)
+            logger.error(f"Error inicializando la UI: {e}", exc_info=True)
+            raise
 
     def initialize_ui(self):
         """Inicialización separada de la UI"""
@@ -569,10 +571,26 @@ class FleetApp:
         return getattr(theme_data, color_name, "#000000")
 
     def toggle_theme(self, e):
-        self.config.theme_mode = "dark" if e.control.value else "light"
-        self.page.theme_mode = getattr(ft.ThemeMode, self.config.theme_mode.upper())
-        self.page.bgcolor = "#1E1E1E" if self.config.theme_mode == "dark" else "#F5F5F5"
-        self.page.update()
+        """Cambia entre modo claro y oscuro"""
+        try:
+            # Cambiar modo
+            self.config.theme_mode = "dark" if e.control.value else "light"
+            self.page.theme_mode = getattr(ft.ThemeMode, self.config.theme_mode.upper())
+            
+            # Actualizar colores principales
+            self.page.bgcolor = self.get_theme_color("bg_primary")
+            self.page.update()
+            
+            # Actualizar todos los componentes
+            self.initialize_ui()
+            self.update_layout()
+            
+            # Guardar preferencia
+            user_manager = UserManager()
+            user_manager.guardar_dato("preferencias", "tema", self.config.theme_mode)
+            
+        except Exception as e:
+            logger.error(f"Error cambiando tema: {e}")
 
     def toggle_voice(self, e):
         self.config.enable_voice = e.control.value
@@ -622,44 +640,15 @@ class FleetApp:
                             weight=ft.FontWeight.W_400,
                             text_align=ft.TextAlign.LEFT
                         ),
-                        expand=True
+                        expand=True,
+                        bgcolor=self.get_theme_color("card_bg"),
+                        border_radius=12,
+                        padding=16
                     )
                 ]),
-                ft.Row(
-                    [
-                        ft.IconButton(
-                            icon=ft.icons.COPY,
-                            tooltip="Copiar",
-                            icon_color=self.get_theme_color("accent"),
-                            on_click=lambda _: self.page.set_clipboard(message)
-                        ) if not is_user else ft.Container(),
-                        ft.IconButton(
-                            icon=ft.icons.VOLUME_UP,
-                            tooltip="Escuchar",
-                            icon_color=self.get_theme_color("accent"),
-                            on_click=lambda _: self.speak_text(message)
-                        ) if not is_user else ft.Container()
-                    ],
-                    alignment=ft.MainAxisAlignment.END
-                ) if not is_user else ft.Container()
+                # ...existing code...
             ]),
-            padding=16,
-            margin=ft.margin.symmetric(
-                horizontal=is_user and 32 or 8,
-                vertical = 4
-            ),
-            border_radius=12,
-            bgcolor=self.get_theme_color(
-                "surface" if is_user else "card_bg"
-            ),
-            ink=True,
-            animate=ft.animation.Animation(300, "easeOut"),
-            shadow=ft.BoxShadow(
-                spread_radius=0,
-                blur_radius=8,
-                color=self.get_theme_color("shadow"),
-                offset=ft.Offset(0, 2)
-            )
+            # ...existing code...
         )
 
     def create_input_bar(self) -> ft.Container:
@@ -669,7 +658,9 @@ class FleetApp:
                     icon=ft.icons.ASSISTANT,
                     icon_color=self.get_theme_color("accent"),
                     icon_size=24,
-                    tooltip="Assistant"
+                    tooltip="Assistant",
+                    bgcolor=self.get_theme_color("button_bg"),
+                    hover_color=self.get_theme_color("hover")
                 ),
                 ft.TextField(
                     ref=self.input_field,
@@ -678,22 +669,19 @@ class FleetApp:
                     filled=True,
                     expand=True,
                     text_size=16,
-                    bgcolor=self.get_theme_color("surface"),
-                    color=self.get_theme_color("text_primary"),
+                    bgcolor=self.get_theme_color("input_bg"),
+                    color=self.get_theme_color("input_text"),
                     cursor_color=self.get_theme_color("accent"),
                     border_color="transparent",
-                    focused_border_color=self.get_theme_color("accent")
+                    focused_border_color=self.get_theme_color("accent"),
+                    hint_style=ft.TextStyle(
+                        color=self.get_theme_color("text_secondary")
+                    )
                 ),
                 self.mic_button,
                 self.send_button
             ], spacing=8),
-            padding=ft.padding.all(16),
-            margin=ft.margin.only(
-                left=16, right=16, bottom=16, top=8
-            ),
-            bgcolor=self.get_theme_color("bg_secondary"),
-            border_radius=28,
-            shadow=self.create_elevation_shadow(2)
+            # ...existing code...
         )
 
     def create_elevation_shadow(self, elevation: int) -> ft.BoxShadow:

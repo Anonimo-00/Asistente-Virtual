@@ -63,40 +63,36 @@ def print_global_vars():
 
 def main():
     try:
-        # Configurar event loop
-        if platform.system() == 'Windows':
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        # Iniciar monitores en threads separados
+        set_global_var("is_active", True)
+        
+        vars_monitor = threading.Thread(target=print_global_vars, daemon=True)
+        vars_monitor.start()
+        logger.info("Monitor de variables iniciado")
+        
+        wifi_monitor_thread = start_wifi_monitor()
+        logger.info("Monitor WiFi iniciado")
 
-        # Inicializar servicios primero
+        # Inicializar servicios
         nlp_service = NLPService()
+        if not nlp_service.initialized:
+            raise RuntimeError("No se pudo inicializar el servicio NLP")
         
-        # Crear la aplicación
-        app = FleetApp(nlp_service)
-        
-        # Ejecutar en modo normal (no async)
+        # Ejecutar aplicación de forma simple y directa
         ft.app(
-            target=app.main,
+            target=lambda page: FleetApp(nlp_service).main(page),
             assets_dir="assets",
-            upload_dir="uploads",
-            view=ft.AppView.NATIVE
+            upload_dir="uploads"
         )
         
     except KeyboardInterrupt:
         logger.info("Aplicación interrumpida por el usuario")
+        sys.exit(0)
     except Exception as e:
-        logger.error(f"Error fatal: {str(e)}")
+        logger.error(f"Error fatal: {str(e)}", exc_info=True)
         sys.exit(1)
+    finally:
+        set_global_var("is_active", False)
 
 if __name__ == "__main__":
-    # Iniciar monitores en threads separados
-    set_global_var("is_active", True)
-    
-    vars_monitor = threading.Thread(target=print_global_vars, daemon=True)
-    vars_monitor.start()
-    logger.info("Monitor de variables iniciado")
-    
-    wifi_monitor_thread = start_wifi_monitor()
-    logger.info("Monitor WiFi iniciado")
-    
-    # Iniciar la aplicación
     main()
