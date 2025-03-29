@@ -287,23 +287,49 @@ class FleetApp:
         return ft.Container(
             visible=False,
             content=ft.Column([
-                ft.Text("Configuración", size=20, weight=ft.FontWeight.BOLD),
-                ft.Divider(),
-                ft.Switch(label="Modo oscuro", value=self.config.theme_mode == "dark",
-                         on_change=self.toggle_theme),
-                ft.Switch(label="Voz activada", value=self.config.enable_voice,
-                         on_change=self.toggle_voice),
+                ft.Text(
+                    "Configuración",
+                    size=20,
+                    weight=ft.FontWeight.BOLD,
+                    color=self.get_theme_color("text_primary")
+                ),
+                ft.Divider(color=self.get_theme_color("divider")),
+                ft.Switch(
+                    label="Modo oscuro",
+                    value=self.config.theme_mode == "dark",
+                    on_change=self.toggle_theme,
+                    label_style=ft.TextStyle(
+                        color=self.get_theme_color("text_primary")
+                    )
+                ),
+                ft.Switch(
+                    label="Voz activada",
+                    value=self.config.enable_voice,
+                    on_change=self.toggle_voice,
+                    label_style=ft.TextStyle(
+                        color=self.get_theme_color("text_primary")
+                    )
+                ),
                 ft.Slider(
                     label="Tamaño de fuente",
                     min=12,
                     max=24,
                     value=self.config.font_size,
-                    on_change=self.change_font_size
+                    on_change=self.change_font_size,
+                    label_style=ft.TextStyle(
+                        color=self.get_theme_color("text_primary")
+                    ),
+                    active_color=self.get_theme_color("accent"),
+                    inactive_color=self.get_theme_color("divider")
                 ),
                 self.search_settings,
             ]),
             padding=20,
-            bgcolor=ft.colors.SURFACE_VARIANT,
+            bgcolor=self.get_theme_color("settings_bg"),
+            border=ft.border.all(
+                color=self.get_theme_color("settings_border"),
+                width=1
+            ),
             border_radius=10,
             margin=10,
         )
@@ -571,7 +597,6 @@ class FleetApp:
         return getattr(theme_data, color_name, "#000000")
 
     def toggle_theme(self, e):
-        """Cambia entre modo claro y oscuro"""
         try:
             # Cambiar modo
             self.config.theme_mode = "dark" if e.control.value else "light"
@@ -579,18 +604,49 @@ class FleetApp:
             
             # Actualizar colores principales
             self.page.bgcolor = self.get_theme_color("bg_primary")
-            self.page.update()
             
-            # Actualizar todos los componentes
+            # Actualizar todos los elementos
             self.initialize_ui()
             self.update_layout()
+            
+            # Actualizar componentes adicionales
+            self.update_component_themes()
             
             # Guardar preferencia
             user_manager = UserManager()
             user_manager.guardar_dato("preferencias", "tema", self.config.theme_mode)
             
+            self.page.update()
         except Exception as e:
             logger.error(f"Error cambiando tema: {e}")
+
+    def update_component_themes(self):
+        """Actualiza los temas de todos los componentes"""
+        try:
+            # Actualizar barra de entrada
+            self.input_field.bgcolor = self.get_theme_color("input_bg")
+            self.input_field.color = self.get_theme_color("input_text")
+            
+            # Actualizar botones
+            for btn in [self.mic_button, self.send_button, self.settings_button]:
+                btn.bgcolor = self.get_theme_color("button_bg")
+                btn.color = self.get_theme_color("button_text")
+                
+            # Actualizar íconos de estado
+            self.connection_icon_online.color = self.get_theme_color("success")
+            self.connection_icon_offline.color = self.get_theme_color("error")
+            
+            # Actualizar configuración
+            if self.settings_view:
+                self.settings_view.bgcolor = self.get_theme_color("settings_bg")
+                
+            # Actualizar mensajes existentes
+            for msg in self.chat_history.controls:
+                if hasattr(msg, 'bgcolor'):
+                    msg.bgcolor = self.get_theme_color("card_bg")
+                    
+        except Exception as e:
+            logger.error(f"Error actualizando temas de componentes: {e}")
 
     def toggle_voice(self, e):
         self.config.enable_voice = e.control.value
