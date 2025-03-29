@@ -39,42 +39,56 @@ GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id_here
 ## Estructura del Proyecto
 
 ```
-Asistente Virtual/
-├── config/
-│   ├── credentials.yml     # Claves de API, configuración de servicios
-│   └── settings.json       # Configuraciones generales
-├── integrations/
-│   ├── skills/
+Asistente_Virtual/
+├── assets/                 
+│   └── assistant_logo.png          # Recursos gráficos globales (logo, iconos, etc.)
+├── config/                     
+│   ├── credentials.yml             # Claves de API y configuración de servicios externos (LUIS, QnA Maker, etc.)
+│   └── settings.json               # Configuración global (idioma, zona horaria, etc.)
+├── data/                       
+│   ├── training/                   # Corpus de entrenamiento (frases, ejemplos de intents)
+│   ├── entities/                   # Definición de entidades personalizadas
+│   └── user_profile.json           # Perfil o preferencias del usuario
+├── dialogs/                    
+│   ├── flows/                      # Flujos de conversación organizados por escenarios
+│   └── responses/                  # Plantillas de respuestas (dinámicas o estáticas)
+├── integrations/               
+│   ├── skills/                     # Módulos de habilidades (skills) específicas del asistente
 │   │   ├── base/
-│   │   │   ├── __init__.py
-│   │   │   └── skill_manager.py  # Gestor central de skills
-│   │   ├── conversation/         # Skills de conversación
-│   │   ├── system/              # Skills del sistema
-│   │   └── utils/               # Skills de utilidades
-│   └── webhooks/
-├── data/
-│   ├── training/           # Corpus y frases de entrenamiento
-│   └── entities/           # Definiciones de entidades
-├── intents/
-│   ├── common/            # Intents predeterminados
-│   └── custom/            # Intents específicos
-├── dialogs/
-│   ├── flows/             # Flujos de conversación
-│   └── responses/         # Plantillas de respuestas
-├── integrations/
-│   ├── ui/
-│   │   ├── flet_app.py    # Interfaz de usuario
-│   │   └── assets/        # Recursos estáticos
-│   ├── skills/            # Habilidades del asistente
-│   └── webhooks/          # Conexiones externas
-├── services/
-│   ├── nlp/               # Procesamiento de lenguaje
-│   └── messaging/         # Gestión de mensajes
-├── tests/
-│   ├── unit/             
-│   └── integration/      
-└── utils/
-    └── helpers.py         # Utilidades comunes
+│   │   │   └── skill_manager.py    # Gestión y carga de habilidades base
+│   │   ├── conversation/
+│   │   │   └── conversation_skill.py  # Habilidad para manejar diálogos generales
+│   │   ├── web_search/
+│   │   │   └── web_search_skill.py    # Habilidad para realizar búsquedas en la web
+│   │   └── __init__.py             # Inicializador del módulo de skills
+│   ├── ui/                         # Interfaz de usuario desarrollada con Flet (solo para PC)
+│   │   ├── flet_app.py             # Código principal de la aplicación Flet
+│   │   └── assets/                 # Recursos específicos de la UI (estilos, imágenes adicionales)
+│   └── webhooks/                   # Handlers para webhooks y fulfillment
+│       └── webhook_handler.py      # Lógica para gestionar solicitudes entrantes de APIs externas
+├── services/                    
+│   ├── nlp/                        # Servicios para procesamiento del lenguaje natural
+│   │   └── nlp_service.py          # Integración con motores NLP (LUIS, Dialogflow, etc.)
+│   ├── messaging/                  # Adaptadores para distintos canales de mensajería
+│   │   └── message_service.py      # Gestión de envío y recepción de mensajes
+│   └── skills/                     # Servicios auxiliares para habilidades
+│       ├── help_skill.py           # Servicio de ayuda e información al usuario
+│       └── skill_registry.py       # Registro y administración de habilidades disponibles
+├── tests/                        
+│   ├── unit/                      # Pruebas unitarias de módulos y funciones individuales
+│   ├── integration/               # Pruebas de integración (flujos de diálogo, conexiones a servicios)
+│   └── test_main.py               # Pruebas generales e integración del sistema
+├── utils/                        
+│   ├── backup_manager.py          # Gestión y ejecución de copias de seguridad
+│   ├── config.py                  # Funciones para cargar y manejar la configuración
+│   ├── exceptions.py              # Definición de excepciones personalizadas
+│   ├── helpers.py                 # Funciones utilitarias de uso común en el proyecto
+│   ├── project_scanner.py         # Herramienta para analizar y reportar la estructura del proyecto
+│   └── state_manager.py           # Gestión del estado global y sesiones de la aplicación
+├── README.md                      # Documentación general y guía de uso del proyecto
+├── requirements.txt               # Lista de dependencias del proyecto
+└── main.py                        # Punto de entrada principal de la aplicación
+
 ```
 
 ## Desarrollo de Skills
