@@ -16,85 +16,118 @@ from integrations.skills.gemini.embeddings_skill import EmbeddingsSkill
 from integrations.skills.gemini.token_counter_skill import TokenCounterSkill
 from integrations.skills.gemini.generation_skill import GenerationSkill
 from integrations.skills.conversation.conversation_skill import ConversationSkill
+import yaml  # Añadir importación de yaml
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", "config", ".env"))
 logger = logging.getLogger(__name__)
 
 class NLPService:
     def __init__(self):
-        self.context = {}
-        # Configurar Gemini con la API key
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        
-        self.conversation_skill = ConversationSkill()
-        self.skills = [self.conversation_skill]
         self.initialized = False
-        
-        # Cargar modelo desde .env
-        self.model_name = os.getenv("LANGUAGE_MODEL", "gemini-pro")
         self.supports_images = False
-        self.chat_history = []
-        
-        # Inicializar skills de Gemini
+        self.model = None
+        self.model_name = None  # Añadir atributo model_name
         self.embeddings_skill = None
         self.token_counter_skill = None
         self.generation_skill = None
         
-        self.init_gemini()
-        
-        # Inicializar todas las skills disponibles
-        self.skills = {
-            'conversation': self.conversation_skill,
-            'embeddings': self.embeddings_skill,
-            'tokens': self.token_counter_skill,
-            'generation': self.generation_skill
-        }
-        
-        # Mapeo de intenciones a skills
-        self.intent_mapping = {
-            # Intents de conversación
-            'chat': 'conversation',
-            'preguntar': 'conversation',
-            'hablar': 'conversation',
-            
-            # Intents de embeddings
-            'vectorizar': 'embeddings',
-            'embedding': 'embeddings',
-            
-            # Intents de tokens
-            'contar': 'tokens',
-            'tokens': 'tokens',
-            'longitud': 'tokens',
-            
-            # Intents de generación
-            'generar': 'generation',
-            'crear': 'generation',
-            'escribir': 'generation'
-        }
+        try:
+            self._load_config()
+            self.init_gemini()
+            self.initialized = True
+        except Exception as e:
+            logger.error(f"Error crítico inicializando Gemini: {e}")
+            raise
 
-        self.offline_responses = {
-            "explanation": ["""Te explico de manera sencilla:
+    def _load_config(self):
+        """Carga la configuración del servicio NLP"""
+        try:
+            config_path = os.path.join("config", "credentials.yml")
+            if not os.path.exists(config_path):
+                raise FileNotFoundError(f"Archivo de configuración no encontrado: {config_path}")
 
-La inteligencia artificial es un campo que estudia cómo hacer que las computadoras aprendan y tomen decisiones.
-
-Este proceso implica el uso de algoritmos y datos para que las máquinas puedan resolver problemas de forma autónoma."""],
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)  # Cambiar json.load por yaml.safe_load
+                
+            google_ai_config = config.get('google_ai', {})
+            api_key = google_ai_config.get('api_key')
+            if not api_key:
+                raise ValueError("API key no encontrada en la configuración")
+                
+            genai.configure(api_key=api_key)
             
-            "technical": ["""Entiendo tu consulta técnica.
-
-Por favor, proporciona más detalles para poder ayudarte mejor.
-
-Actualmente estoy en modo offline, pero intentaré asistirte con la información disponible."""],
+            # Cargar modelo configurado y guardar nombre
+            self.model_name = google_ai_config.get('model', 'gemini-pro')
+            self.model = genai.GenerativeModel(self.model_name)
             
-            "greeting": ["¡Hola!\n\n¿En qué puedo ayudarte hoy?"],
-            "farewell": ["¡Hasta luego!\n\nQue tengas un excelente día."],
-            "help": ["Estas son algunas cosas en las que puedo ayudarte:\n\n- Responder preguntas\n- Explicar conceptos\n- Analizar problemas\n\n¿Qué necesitas?"],
-            "error": ["Lo siento, estoy en modo offline.\n\nPor favor, espera a que se restablezca la conexión para obtener una respuesta más detallada."]
-        }
-        
-        self.last_wifi_check = 0
-        self.wifi_check_interval = 1  # segundos
-        self.load_readme_context()
-        
+            # Configuración generación
+            self.generate_config = {
+                "temperature": google_ai_config.get('temperature', 0.7),
+                "top_p": google_ai_config.get('top_p', 0.8),
+                "top_k": google_ai_config.get('top_k', 40),
+                "max_output_tokens": google_ai_config.get('max_tokens', 2048),
+            }
+            
+            logger.info(f"Configuración NLP cargada correctamente: modelo={self.model_name}")
+            
+        except Exception as e:
+            logger.error(f"Error cargando configuración NLP: {e}")
+            raise
+
+    def init_gemini(self):
+        """Inicializa el modelo Gemini y sus skills"""
+        try:
+            # Verificar si el modelo está disponible
+            if not self.model:
+                raise ValueError("Modelo no inicializado")
+                
+            # Inicializar skills
+            self._init_skills()
+            
+            logger.info(f"Servicio NLP inicializado correctamente con modelo: {self.model}")
+            
+        except Exception as e:
+            logger.error(f"Error inicializando Gemini: {e}")
+            raise
+
+    def _init_skills(self):
+        """Inicializa las skills del servicio"""
+        try:
+            self.embeddings_skill = EmbeddingsSkill(self.model)
+            logger.info("EmbeddingsSkill inicializada correctamente")
+        except Exception as e:
+            logger.error(f"Error inicializando EmbeddingsSkill: {e}")
+            self.embeddings_skill = None
+
+        try:
+            self.token_counter_skill = TokenCounterSkill(self.model)
+            logger.info("TokenCounterSkill inicializada correctamente")
+        except Exception as e:
+            logger.error(f"Error inicializando TokenCounterSkill: {e}")
+            self.token_counter_skill = None
+
+        try:
+            self.generation_skill = GenerationSkill(self.model)
+            logger.info("GenerationSkill inicializada correctamente")
+        except Exception as e:
+            logger.error(f"Error inicializando GenerationSkill: {e}")
+            self.generation_skill = None
+
+        if not self.supports_images:
+            self.personality_prompt = self.load_personality_prompt()
+            # Iniciar chat sin pasar generation_config directamente
+            self.chat = self.model.start_chat(history=[])
+            
+            # Configurar el chat después de crearlo
+            self.chat.generation_config = self.generate_config
+            
+            if self.personality_prompt:
+                self.chat.send_message(self.personality_prompt)
+
+        self.initialized = True
+        logger.info(f"Modelo {self.model_name} inicializado con configuración completa")
+        return True
+
     def load_readme_context(self):
         """Carga el contenido del README como contexto"""
         try:
@@ -122,74 +155,6 @@ Actualmente estoy en modo offline, pero intentaré asistirte con la información
             self.last_wifi_check = current_time
             logger.debug(f"Estado de conexión actualizado: {'Online' if self.is_online else 'Offline'}")
         return self.is_online
-
-    def init_gemini(self):
-        try:
-            if not self.model_name:
-                raise ValueError("LANGUAGE_MODEL no definido en .env. Usando modelo por defecto: gemini-pro")
-                self.model_name = "gemini-pro"
-            
-            logger.info(f"Inicializando modelo: {self.model_name}")
-            
-            # Configuración del modelo
-            model_config = {
-                "temperature": 0.9,
-                "top_p": 0.8,
-                "top_k": 40,
-                "max_output_tokens": 2048,
-                "stop_sequences": []
-            }
-
-            # Configuración simplificada
-            self.generate_config = genai.types.GenerationConfig(**model_config)
-
-            # Crear modelo con configuración básica
-            self.model = genai.GenerativeModel(
-                model_name=self.model_name,
-                generation_config=self.generate_config
-            )
-
-            # Inicializar skills especializadas con mejor control de errores
-            try:
-                self.embeddings_skill = EmbeddingsSkill(self.model)
-                logger.info("EmbeddingsSkill inicializada correctamente")
-            except Exception as e:
-                logger.error(f"Error inicializando EmbeddingsSkill: {e}")
-                self.embeddings_skill = None
-
-            try:
-                self.token_counter_skill = TokenCounterSkill(self.model)
-                logger.info("TokenCounterSkill inicializada correctamente")
-            except Exception as e:
-                logger.error(f"Error inicializando TokenCounterSkill: {e}")
-                self.token_counter_skill = None
-
-            try:
-                self.generation_skill = GenerationSkill(self.model)
-                logger.info("GenerationSkill inicializada correctamente")
-            except Exception as e:
-                logger.error(f"Error inicializando GenerationSkill: {e}")
-                self.generation_skill = None
-
-            if not self.supports_images:
-                self.personality_prompt = self.load_personality_prompt()
-                # Iniciar chat sin pasar generation_config directamente
-                self.chat = self.model.start_chat(history=[])
-                
-                # Configurar el chat después de crearlo
-                self.chat.generation_config = self.generate_config
-                
-                if self.personality_prompt:
-                    self.chat.send_message(self.personality_prompt)
-
-            self.initialized = True
-            logger.info(f"Modelo {self.model_name} inicializado con configuración completa")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error crítico inicializando Gemini: {str(e)}")
-            self.initialized = False
-            return False
 
     def load_personality_prompt(self) -> str:
         """Carga el prompt de personalidad desde archivo"""

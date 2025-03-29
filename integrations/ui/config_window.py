@@ -4,6 +4,8 @@ from typing import Callable, List
 import threading
 import time
 import logging
+from global_vars import get_global_var, update_theme
+from utils.theme_events import theme_events  # Añadir esta importación
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +17,10 @@ class ConfigWindow:
         self.view = None
         self.main_view = None
         self.previous_controls = []
+        # Añadir tema actual
+        self.current_theme = get_global_var("theme_mode", "dark")
+        # Registrarse como listener de cambios de tema
+        theme_events.add_listener(self._on_theme_changed)
 
     def build(self):
         self.view = ft.Container(
@@ -58,19 +64,25 @@ class ConfigWindow:
         self.page.update()
 
     def _build_system_prefs(self):
-        theme = self.user_manager.obtener_dato("preferencias", "tema") or "dark"
+        # Obtener tema de las variables globales primero
+        theme = get_global_var("theme_mode") or self.user_manager.obtener_dato("preferencias", "tema") or "dark"
+        
         return ft.Container(
             content=ft.Column([
                 ft.Text("Configuración del Sistema", size=24, weight=ft.FontWeight.BOLD, color=ft.colors.BLUE_400),
                 ft.Container(
                     content=ft.Column([
-                        # Control de tema modificado
-                        ft.Switch(
-                            label="Tema Oscuro",
-                            value=theme == "dark",
-                            active_color=ft.colors.BLUE_400,
-                            on_change=lambda e: self._save_theme(e.control.value)
-                        ),
+                        # Control de tema con nuevo manejo
+                        ft.Row([
+                            ft.Text("Tema", size=16, color=ft.colors.WHITE70),
+                            ft.Switch(
+                                label="Modo Oscuro",
+                                value=theme == "dark",
+                                active_color=ft.colors.BLUE_400,
+                                on_change=self._save_theme
+                            ),
+                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                        
                         # Control de voz
                         ft.Switch(
                             label="Voz activada",
@@ -106,12 +118,34 @@ class ConfigWindow:
     def _save_pref(self, categoria: str, clave: str, valor: any):
         self.user_manager.actualizar_dato(categoria, clave, valor)
 
-    def _save_theme(self, value):
-        theme = "dark" if value else "light"
-        self._save_pref("preferencias", "tema", theme)
-        self.page.theme_mode = theme.upper()
-        self.page.bgcolor = "#1E1E1E" if theme == "dark" else "#F5F5F5"
-        self.page.update()
+    def _save_theme(self, e):
+        """Guarda y aplica el nuevo tema"""
+        try:
+            new_theme = "dark" if e.control.value else "light"
+            old_theme = self.current_theme  # Guardar tema anterior
+            
+            # Primero actualizar localmente
+            self._save_pref("preferencias", "tema", new_theme)
+            self.current_theme = new_theme  # Actualizar tema actual
+            
+            # Luego propagar el cambio globalmente
+            if update_theme(new_theme):
+                # Actualizar UI solo si el cambio fue exitoso
+                self.page.theme_mode = new_theme.upper()
+                self.page.bgcolor = "#1E1E1E" if new_theme == "dark" else "#F5F5F5"
+                self.page.update()
+            else:
+                # Revertir cambios si falló
+                self._save_pref("preferencias", "tema", old_theme)
+                self.current_theme = old_theme
+                logger.warning("No se pudo actualizar el tema global")
+                
+        except Exception as e:
+            logger.error(f"Error actualizando tema: {e}")
+
+    def _on_theme_changed(self, new_theme: str):
+        """Callback para cambios de tema"""
+        self.current_theme = new_theme
 
     def close_window(self, e=None):
         """Cierra la ventana de configuración"""
@@ -168,3 +202,10 @@ class ConfigWindow:
             if self.previous_controls:
                 self.page.controls = self.previous_controls
                 self.page.update()
+
+    def __del__(self):
+        """Cleanup al destruir la instancia"""
+        try:
+            theme_events.remove_listener(self._on_theme_changed)
+        except:
+            pass

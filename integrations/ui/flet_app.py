@@ -14,6 +14,8 @@ import urllib.request
 from global_vars import get_global_var, set_global_var
 from .config_window import ConfigWindow  # Cambiar esta línea - importación correcta
 from .settings_view import SearchSettingsView  # Moved after flet imports
+from .components.chat_bubble import ChatBubble
+from .components.input_bar import InputBar
 
 logger = logging.getLogger(__name__)
 
@@ -446,8 +448,24 @@ class FleetApp:
             raise
 
     def initialize_ui(self):
-        """Inicialización separada de la UI"""
         try:
+            self.chat_container = ft.Column(
+                spacing=10,
+                scroll=ft.ScrollMode.AUTO,
+                expand=True,
+            )
+
+            self.input_bar = InputBar(
+                self.page,
+                on_submit=self.send_message,
+                on_voice=self.toggle_voice_input
+            )
+
+            main_view = ft.Column([
+                self.chat_container,
+                self.input_bar
+            ], expand=True)
+
             # Barra superior con acciones
             appbar = ft.AppBar(
                 leading=ft.Icon(ft.icons.CHAT_ROUNDED),
@@ -956,3 +974,8 @@ class FleetApp:
             except Exception as e:
                 logger.error(f"Error en connection checker: {e}")
                 await asyncio.sleep(1)
+
+    def add_message(self, message: str, is_user: bool):
+        bubble = ChatBubble(self.page, message, is_user)
+        self.chat_container.controls.append(bubble)
+        self.page.update()

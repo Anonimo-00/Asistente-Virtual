@@ -8,13 +8,17 @@ from typing import Dict
 class CacheCleaner:
     def __init__(self, base_dir="data/cache"):
         self.base_dir = base_dir
-        self.cache_dirs = ['documents', 'images', 'audio', 'video', 'search']
+        self.cache_dirs = ['documents', 'images', 'audio', 'video', 'search', 'data']
         self.max_age_days = 7
+        self.data_dir = os.path.join(os.path.dirname(base_dir), 'data')
         self.ensure_cache_dirs()
-        
+
     def ensure_cache_dirs(self):
-        """Asegura que existan los directorios de caché"""
+        """Asegura que existan los directorios de caché y data"""
         try:
+            # Crear directorio data general
+            os.makedirs(self.data_dir, exist_ok=True)
+            # Crear subdirectorios de caché
             for subdir in self.cache_dirs:
                 dir_path = os.path.join(self.base_dir, subdir)
                 os.makedirs(dir_path, exist_ok=True)
@@ -24,7 +28,14 @@ class CacheCleaner:
     def clean_old_files(self):
         """Elimina archivos más antiguos que max_age_days"""
         now = datetime.now()
-        for root, _, files in os.walk(self.base_dir):
+        # Limpiar directorio de caché
+        self._clean_directory(self.base_dir, now)
+        # Limpiar directorio data
+        self._clean_directory(self.data_dir, now)
+
+    def _clean_directory(self, directory: str, now: datetime):
+        """Limpia archivos antiguos de un directorio específico"""
+        for root, _, files in os.walk(directory):
             for file in files:
                 file_path = os.path.join(root, file)
                 if self._is_old_file(file_path, now):

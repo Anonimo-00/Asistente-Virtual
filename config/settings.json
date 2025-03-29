@@ -12,14 +12,20 @@
         "enable_voice": true,
         "voice_lang": "es",
         "spacing": {
-            "chat_padding": 20,
-            "message_spacing": 12,
-            "input_padding": 16
+            "unit": 8,
+            "chat_padding": 24,
+            "message_spacing": 16,
+            "input_padding": 20
         },
         "border_radius": {
+            "small": 8,
+            "medium": 12,
+            "large": 16,
+            "xl": 24,
             "message": 20,
-            "input": 24,
-            "button": 12
+            "input": 28,
+            "button": 12,
+            "card": 16
         },
         "themes": {
             "dark": {
@@ -41,7 +47,14 @@
                 "hover": "rgba(255, 255, 255, 0.1)",
                 "settings_bg": "#2D2D2D",
                 "settings_text": "#FFFFFF",
-                "settings_border": "#3C4043"
+                "settings_border": "#3C4043",
+                "assistant_bubble": "#3C4043",
+                "user_bubble": "#8ab4f8",
+                "bubble_shadow": "rgba(0, 0, 0, 0.2)",
+                "icon_button": "#8ab4f8",
+                "icon_button_hover": "#a5c7ff",
+                "mic_active": "#EA4335",
+                "card_border": "rgba(255, 255, 255, 0.1)"
             },
             "light": {
                 "bg_primary": "#FFFFFF",
@@ -62,7 +75,14 @@
                 "hover": "rgba(0, 0, 0, 0.05)",
                 "settings_bg": "#FFFFFF",
                 "settings_text": "#202124",
-                "settings_border": "#E0E0E0"
+                "settings_border": "#E0E0E0",
+                "assistant_bubble": "#F8F9FA",
+                "user_bubble": "#E8F0FE",
+                "bubble_shadow": "rgba(0, 0, 0, 0.1)",
+                "icon_button": "#1A73E8",
+                "icon_button_hover": "#1557B0",
+                "mic_active": "#EA4335",
+                "card_border": "rgba(0, 0, 0, 0.12)"
             }
         },
         "animations": {
@@ -77,6 +97,22 @@
             "lazy_loading": true,
             "cache_messages": true,
             "max_cached_messages": 100
+        },
+        "fonts": {
+            "heading": "Google Sans Display",
+            "body": "Google Sans Text",
+            "code": "Google Sans Mono"
+        },
+        "animation": {
+            "duration": 250,
+            "curve": "standardCurve",
+            "message_stagger": 50
+        },
+        "elevation": {
+            "card": 2,
+            "dialog": 8,
+            "menu": 4,
+            "input": 1
         }
     },
     "nlp": {
