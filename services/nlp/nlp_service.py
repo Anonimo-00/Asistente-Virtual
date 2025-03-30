@@ -22,14 +22,29 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", "config", ".env"
 logger = logging.getLogger(__name__)
 
 class NLPService:
-    def __init__(self):
+    def __init__(self, last_wifi_check_interval=60):
+        self.last_wifi_check = time.time()  # Inicializar last_wifi_check
+        self.wifi_check_interval = last_wifi_check_interval  # Guardar el intervalo
         self.initialized = False
+        self.is_online = False  # Definir el atributo is_online
+        self.skills = {}  # Definir el atributo skills
+
+
         self.supports_images = False
         self.model = None
         self.model_name = None  # Añadir atributo model_name
         self.embeddings_skill = None
         self.token_counter_skill = None
         self.generation_skill = None
+        
+        # Definir el mapeo de intenciones
+        self.intent_mapping = {  # Definir el mapeo de intenciones
+
+            "generar": "generation",
+            "embeddings": "embeddings",
+            "contar tokens": "tokens",
+            "saludo": "conversation"
+        }
         
         try:
             self._load_config()
@@ -39,7 +54,51 @@ class NLPService:
             logger.error(f"Error crítico inicializando Gemini: {e}")
             raise
 
+    def check_api_key(self) -> bool:
+        """Check if the API key is valid."""
+        try:
+            # Attempt to make a simple request to validate the API key
+            response = genai.GenerativeModel(self.model_name).generate("Test")
+            return response is not None
+        except Exception as e:
+            logger.error(f"Invalid API key: {e}")
+            return False
+
+    def check_api_key(self) -> bool:
+        """Check if the API key is valid."""
+        try:
+            # Attempt to make a simple request to validate the API key
+            response = genai.GenerativeModel(self.model_name).generate("Test")
+            return response is not None
+        except Exception as e:
+            logger.error(f"Invalid API key: {e}")
+            return False
+
+    def check_api_key(self) -> bool:
+        """Check if the API key is valid."""
+        try:
+            # Attempt to make a simple request to validate the API key
+            response = genai.GenerativeModel(self.model_name).generate("Test")
+            return response is not None
+        except Exception as e:
+            logger.error(f"Invalid API key: {e}")
+            return False
+
+    def check_api_key(self) -> bool:
+        """Check if the API key is valid."""
+        try:
+            # Attempt to make a simple request to validate the API key
+            response = genai.GenerativeModel(self.model_name).generate("Test")
+            return response is not None
+        except Exception as e:
+            logger.error(f"Invalid API key: {e}")
+            return False
+
     def _load_config(self):
+
+
+
+
         """Carga la configuración del servicio NLP"""
         try:
             config_path = os.path.join("config", "credentials.yml")
@@ -187,7 +246,8 @@ class NLPService:
 
     async def process_input(self, text: str, image_path: str = None) -> str:
         try:
-            if self.check_connectivity() and self.initialized:
+            if get_global_var("wifi_status") and self.initialized:
+
                 # Detectar intent y skill apropiada
                 skill_name = self._detect_skill(text.lower())
                 skill = self.skills.get(skill_name)
@@ -234,7 +294,11 @@ class NLPService:
                 return self._process_offline(text)
         except Exception as e:
             logger.error(f"Error en NLP: {e}")
-            return "Hubo un error procesando tu solicitud."
+    def _handle_model_error(self) -> str:
+        """Maneja errores del modelo y devuelve un mensaje de error."""
+        logger.error("Error en el modelo.")
+        return "Hubo un error procesando tu solicitud."
+
 
     def _detect_skill(self, text: str) -> str:
         """Detecta qué skill usar basado en el texto de entrada"""

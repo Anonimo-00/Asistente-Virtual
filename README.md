@@ -93,6 +93,7 @@ Asistente_Virtual/
 │   ├── common/
 │   │   └── basic_intents.py        # Intents predeterminados (bienvenida, fallback, cancelación)
 │   └── custom/                     # Intents específicos definidos por el usuario (actualmente vacío o en desarrollo)
+├── logs/                    # Aquí se guardarán los archivos de log (errores, info, etc.)
 ├── services/                    
 │   ├── nlp/                        # Servicios para procesamiento del lenguaje natural
 │   │   └── nlp_service.py          # Conexión e integración con motores NLP (LUIS, Dialogflow, etc.)
@@ -156,60 +157,182 @@ Para probar las skills, ejecute:
 # Desde el directorio raíz del proyecto
 python -m tests.skills.test_basic_skills
 ```
+Plan de Acción para el Asistente Virtual Personal "Central"
+Este proyecto es un asistente virtual personal desarrollado en Python, diseñado para integrarse con diversas APIs y proporcionar una variedad de funcionalidades. El plan se divide en tres fases principales, cada una con objetivos, tareas y entregables específicos.
 
-## Plan de Desarrollo
+Fase 1: Fundamentos e Integraciones Básicas (8 semanas)
+Objetivo:
+Establecer la estructura base del proyecto, configurar el entorno de desarrollo y desarrollar las integraciones iniciales, tanto en la interfaz gráfica como en la conexión con servicios esenciales.
 
-El desarrollo del asistente virtual está organizado en tres fases principales:
+Semanas 1-2: Estructura del Proyecto y Configuración del Entorno
+Tareas:
 
-### Fase 1: Fundamentos e Integraciones Básicas (8 semanas)
+Configurar el entorno de desarrollo en Python 3.12 (crear entorno virtual, instalar dependencias).
 
-#### Semanas 1-2: Estructura del Proyecto y Entorno (En proceso)
-- Configuración del entorno de desarrollo
-- Implementación de estructura modular
-- Sistema de logs y monitoreo de conexión
-- Interfaz gráfica básica con Flet
+Definir y documentar la estructura del proyecto (carpetas, módulos y flujo de trabajo).
 
-#### Semanas 3-4: Integración Google Services ()
-- Autenticación y credenciales seguras
-- Integración Gmail, Calendar y Contacts
-- Manejo de errores y excepciones
+Establecer un sistema de logging robusto y un monitoreo básico de conexión a Internet.
 
-#### Semanas 5-6: Sistema de Notas ()
-- Sistema de notas persistente
-- CRUD de notas
-- Búsqueda por palabras clave
+Configurar la interfaz gráfica inicial con Flet (u otra librería elegida), mostrando un layout básico basado en tarjetas.
 
-#### Semanas 7-8: Sistema de Archivos y Voz ()
-- Gestión de archivos
-- Integración Text-to-Speech
-- Integración Speech-to-Text
+Entregables:
 
-### Fase 2: Funcionalidades Avanzadas (12 semanas)
+Entorno configurado y estructura del proyecto documentada.
 
-#### Semanas 9-10: Programación de Tareas ()
-- Sistema de tareas programadas
-- Tareas recurrentes
+Primer prototipo de UI (layout base) con soporte para logging.
 
-#### Semanas 11-12: Integraciones Office ()
-- Integración con Excel
-- Integración con WhatsApp
+Semanas 3-4: Integración con Servicios de Google
+Tareas:
 
-#### Semanas 13-14: Búsqueda Avanzada ()
-- Mejoras al sistema de búsqueda
-- Algoritmos optimizados
+Configurar autenticación y gestionar credenciales de forma segura (uso de archivos .env y configuración en config/).
 
-#### Semanas 15-16: Traductor y Conversación ()
-- Integración servicio de traducción
+Desarrollar la integración con APIs de Gmail, Calendar y Contacts (probar consultas y manejo de datos).
 
-#### Semanas 17-18: Optimización y Seguridad ()
-- Mejoras de rendimiento
-- Pruebas exhaustivas
+Manejar errores y excepciones en la conexión con servicios externos.
 
-### Fase 3: Escalabilidad e IA Local ()
+Entregables:
 
-- Integración de IA local
-- Despliegue en la nube
-- Optimizaciones de rendimiento
+Módulos de integración de Google Services funcionales y testeados.
+
+Documentación de los procesos de autenticación y manejo de errores.
+
+Semanas 5-6: Sistema de Notas y Gestión de Datos
+Tareas:
+
+Implementar un sistema de notas con capacidad CRUD (crear, leer, actualizar, borrar), utilizando una base de datos local (por ejemplo, SQLite).
+
+Incluir funcionalidad de búsqueda por palabras clave en las notas.
+
+Crear una interfaz para visualizar y gestionar las notas, integrada en la UI mediante tarjetas.
+
+Entregables:
+
+Sistema de notas completamente funcional.
+
+Integración de la funcionalidad de búsqueda en la UI.
+
+Pruebas unitarias para las operaciones CRUD.
+
+Semanas 7-8: Gestión de Archivos y Funciones de Voz
+Tareas:
+
+Desarrollar módulos para la gestión de archivos (subir, descargar, organizar).
+
+Integrar servicios de Text-to-Speech (TTS) y Speech-to-Text (STT), asegurando la interacción conversacional.
+
+Realizar pruebas de usabilidad para el reconocimiento de voz y respuesta automática.
+
+Entregables:
+
+Módulos de gestión de archivos y TTS/STT integrados.
+
+Demostración funcional de la interacción por voz en la UI.
+
+Fase 2: Funcionalidades Avanzadas (12 semanas)
+Objetivo:
+Ampliar las funcionalidades del asistente, incluyendo herramientas de productividad, integración de comandos avanzados y mejoras en la interacción, asegurando una experiencia de usuario más rica.
+
+Semanas 9-10: Programación de Tareas y Comandos Avanzados
+Tareas:
+
+Desarrollar un sistema de tareas programadas (incluyendo tareas recurrentes) utilizando una librería como APScheduler.
+
+Crear una interfaz para la gestión de tareas que se integre en el dashboard de Central.
+
+Implementar la configuración de atajos y comandos personalizados (configurables desde la ventana de settings).
+
+Entregables:
+
+Módulo de tareas y programación de comandos con interfaz gráfica.
+
+Documentación de flujos y pruebas de funcionamiento.
+
+Semanas 11-12: Integración de Funcionalidades Office
+Tareas:
+
+Desarrollar integraciones con Excel (por ejemplo, usando openpyxl) para extraer y procesar datos.
+
+Configurar la integración con WhatsApp (por ejemplo, mediante WhatsApp Web API o soluciones de terceros) para el envío/recepción de mensajes.
+
+Entregables:
+
+Módulos de integración con Office (Excel) y WhatsApp, con pruebas de funcionamiento.
+
+Ejemplos de uso documentados en la interfaz.
+
+Semanas 13-14: Sistema Avanzado de Búsqueda y Actualización de Datos
+Tareas:
+
+Mejorar el sistema de búsqueda web con algoritmos optimizados (posiblemente usando bibliotecas de búsqueda difusa).
+
+Configurar la opción de establecer intervalos de actualización de datos en la UI (configurable en settings).
+
+Entregables:
+
+Módulo de búsqueda avanzado y funcional.
+
+Configuración de intervalos de actualización integrada y testeada.
+
+Semanas 15-16: Modo Inmersivo y Configuración de Feedback
+Tareas:
+
+Implementar un "modo inmersivo" o de lectura que minimice distracciones y optimice la visualización de información.
+
+Desarrollar opciones de feedback visual y sonoro (por ejemplo, animaciones o sonidos de confirmación) que se puedan activar desde la ventana de configuración.
+
+Entregables:
+
+Funcionalidad de modo inmersivo y opciones de feedback integradas.
+
+Pruebas de usabilidad y documentación del modo inmersivo.
+
+Semanas 17-18: Optimización de Rendimiento y Seguridad
+Tareas:
+
+Realizar pruebas de rendimiento y optimización en la UI y en los módulos de integración.
+
+Implementar mejoras de seguridad (validación de datos, manejo robusto de excepciones).
+
+Configurar un panel de análisis y logs para monitorear el rendimiento y detectar problemas.
+
+Entregables:
+
+Informes de rendimiento y seguridad, con optimizaciones aplicadas.
+
+Integración del panel de logs en la UI.
+
+Fase 3: Escalabilidad e Integración de IA Local (Tiempo variable)
+Objetivo:
+Preparar el sistema para futuras ampliaciones, integrando módulos de inteligencia artificial local y desplegando la aplicación en la nube si fuese necesario.
+
+Tareas y Objetivos:
+Integración de IA Local:
+Desarrollar e integrar módulos de IA local para mejorar la respuesta y personalización sin depender únicamente de servicios externos.
+
+Despliegue en la Nube:
+Preparar el proyecto para su despliegue en servicios cloud (por ejemplo, AWS, GCP o Azure) y ajustar la escalabilidad.
+
+Optimización y Monitorización Avanzada:
+Implementar herramientas avanzadas de monitorización y optimización (caché distribuido, balanceo de carga, etc.).
+
+Actualizaciones y Mantenimiento Continuo:
+Establecer un plan de mantenimiento y actualizaciones periódicas basadas en feedback y análisis de uso.
+
+Integración Tipográfica
+Utiliza las diferentes versiones de SpaceGrotesk que se encuentran en la carpeta integrations/ui/assets para definir la identidad tipográfica de la interfaz, asegurando una apariencia moderna, coherente y que complemente el resto de los elementos de diseño.
+
+Recomendaciones Generales Adicionales
+Coherencia y Modularidad:
+Asegúrate de que cada componente y efecto se aplique de forma uniforme en toda la UI para lograr una experiencia cohesiva y escalable.
+
+Usabilidad y Accesibilidad:
+Realiza pruebas de usabilidad y accesibilidad para validar que la alternancia entre modos claro y oscuro y el acceso a la configuración sean intuitivos y efectivos.
+
+Feedback en Tiempo Real y Microinteracciones:
+Implementa microinteracciones y animaciones que brinden feedback inmediato (por ejemplo, cambios de color o animaciones al confirmar un cambio) para reforzar la sensación de control y mejorar la experiencia.
+
+Personalización Integral:
+Incorpora opciones avanzadas (como la configuración del tono conversacional, modo inmersivo, ajustes de sensibilidad de reconocimiento de voz y controles de accesibilidad adicionales) para adaptar la UI a tus preferencias person
 
 ## Uso
 

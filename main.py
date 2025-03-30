@@ -83,11 +83,14 @@ def main():
         
         # Ejecutar aplicación de forma simple y directa
         ft.app(
+            title="Asistente Virtual Central",
             target=lambda page: FleetApp(nlp_service).main(page),
             assets_dir="assets",
+            theme_manager=ThemeManager.get_instance(),
             upload_dir="uploads"
         )
-        
+        logger.info("Aplicación de UI iniciada")
+
     except KeyboardInterrupt:
         logger.info("Aplicación interrumpida por el usuario")
         sys.exit(0)

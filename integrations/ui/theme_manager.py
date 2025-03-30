@@ -18,6 +18,14 @@ class ThemeColors:
     text_secondary: str
     surface: str
     card_bg: str
+    button_bg: str  # Nuevo color para el fondo de los botones
+    button_text: str  # Nuevo color para el texto de los botones
+    card_bg: str  # Nuevo color para el fondo de las tarjetas
+    gradient_bg: str  # Color para el fondo con gradiente
+    glass_effect: str  # Color para el efecto de glassmorphism
+
+
+
     error: str
     success: str
     divider: str
@@ -77,6 +85,8 @@ class ThemeManager:
                 self.ui_settings = settings.get('ui', {})
                 
             # Sincronizar tema actual
+        except Exception as e:
+            logger.error(f"Error sincronizando configuración: {e}")
             if self.current_theme != self.ui_settings.get('theme_mode'):
                 self.current_theme = self.ui_settings['theme_mode']
                 update_theme(self.current_theme)
@@ -121,6 +131,7 @@ class ThemeManager:
             self.current_theme = theme_mode
             
         theme = self.themes.get(self.current_theme, self.themes["dark"])
+        update_theme(self.current_theme)  # Actualizar el tema global
         
         # Material 3 Theme
         page.theme = ft.Theme(
@@ -133,6 +144,8 @@ class ThemeManager:
                 surface_tint=theme.accent,
                 outline=theme.divider,
                 shadow=theme.shadow,
+                gradient=theme.gradient_bg,  # Aplicar gradiente
+                glass_effect=theme.glass_effect,  # Aplicar efecto de glassmorphism
             ),
             visual_density=ft.ThemeVisualDensity.COMFORTABLE,
             use_material3=True,
@@ -182,7 +195,13 @@ class ThemeManager:
                 text_primary="#FFFFFF",
                 text_secondary="#B3B3B3",
                 surface="#2D2D2D",
-                card_bg="rgba(32, 33, 36, 0.95)",
+                button_bg="#3C4043",  # Color de fondo de los botones
+                button_text="#FFFFFF",  # Color de texto de los botones
+                card_bg="rgba(32, 33, 36, 0.95)",  # Color de fondo de las tarjetas
+                gradient_bg="linear-gradient(to right, #6a11cb, #2575fc)",  # Ejemplo de gradiente
+                glass_effect="rgba(255, 255, 255, 0.5)",  # Ejemplo de color para glassmorphism
+
+
                 error="#CF6679",
                 success="#03DAC6",
                 divider="#3C4043",
