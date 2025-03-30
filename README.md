@@ -132,8 +132,7 @@ Asistente_Virtual/
 
 - **Flet:** Una opción moderna y sencilla para construir interfaces web y de escritorio en Python.
 - **PySide6 (Qt for Python):** Ofrece amplias posibilidades de personalización y es ideal para interfaces complejas y de alta calidad.
-- **Kivy:** Especializada en aplicaciones táctiles y responsivas, ideal para dispositivos móviles y de escritorio.
-- **Dear PyGui:** Basada en el paradigma de “modo inmediato”, excelente para prototipos y aplicaciones con actualizaciones dinámicas.
+- **Dear PyGui:** Basada en el paradigma de "modo inmediato", excelente para prototipos y aplicaciones con actualizaciones dinámicas.
 
 
 ## Desarrollo de Skills

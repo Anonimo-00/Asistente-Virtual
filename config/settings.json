@@ -128,6 +128,20 @@
             "dialog": 8,
             "menu": 4,
             "input": 1
+        },
+        "effects": {
+            "glass_blur": 10,
+            "card_elevation": 2,
+            "animation_duration": 250,
+            "glassmorphism": {
+                "opacity": 0.1,
+                "blur": 5,
+                "border_opacity": 0.2
+            },
+            "gradients": {
+                "header": ["transparent", "rgba(255,255,255,0.1)"],
+                "card": ["rgba(255,255,255,0.05)", "rgba(255,255,255,0.02)"]
+            }
         }
     },
     "nlp": {

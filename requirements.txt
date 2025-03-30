@@ -1,10 +1,12 @@
 # Google AI
 google-ai-generativelanguage>=0.4.0
 google-cloud-aiplatform>=1.38.1
-google-generativeai>=0.3.2
+google-generativeai>=0.3.0
 
 # GUI
-flet>=0.27.6
+flet>=0.21.0
+pyside6>=6.6.0
+dearpygui>=1.10.0
 
 # NLP & AI
 langchain-community>=0.0.10
@@ -34,3 +36,45 @@ python-dotenv>=1.0.0
 pydantic>=2.5.2
 websockets>=12.0
 absl-py>=1.0.0
+
+# UI Moderna y Efectos Visuales
+material-color-utilities>=0.1.5  # Utilidades de color de Material Design
+blend-modes>=2.1.0  # Efectos de mezcla para glassmorphism
+colour>=0.1.5  # Manipulación avanzada de colores
+colorthief>=0.2.1  # Extracción de paletas de color
+pyparsing>=3.1.1  # Procesamiento de expresiones de color
+
+# Animaciones y Transiciones
+pytweening>=1.0.7  # Funciones de easing para animaciones suaves
+transitions>=0.9.0  # Sistema de máquinas de estado para transiciones
+python-statemachine>=2.1.0  # Gestión de estados de UI
+
+# Efectos Visuales y Renderizado
+glcontext>=2.4.0  # Contexto OpenGL para efectos visuales
+moderngl>=5.8.2  # Renderizado moderno con OpenGL
+pillow-filters>=1.0.0  # Filtros adicionales para imágenes
+blurwindow>=1.2.1  # Efectos de desenfoque para ventanas
+
+# Accesibilidad y UX
+wcag-contrast-ratio>=0.9  # Validación de contraste según WCAG
+screeninfo>=0.8.1  # Información de pantallas y resoluciones
+fonttools>=4.45.1  # Manipulación y análisis de fuentes
+pyaccessibility>=0.1.2  # Herramientas de accesibilidad
+
+# Gestión de Layouts y Responsividad
+cssselect>=1.2.0  # Selectores CSS para estilos
+csselements>=0.1.1  # Elementos de estilo CSS
+flexlayout>=0.1.2  # Layouts flexibles tipo CSS
+gridlayout>=0.1.0  # Sistema de cuadrícula para UI
+
+# Testing y Desarrollo
+pytest-qt>=4.2.0  # Testing específico para UI
+pytest-xvfb>=3.0.0  # Testing en entorno virtual X11
+pytest-cov>=4.1.0  # Cobertura de código
+pytest-mock>=3.12.0  # Mocking para pruebas
+
+# Optimización y Rendimiento
+cachetools>=5.3.2  # Caché para elementos de UI
+psutil>=5.9.6  # Monitoreo de recursos del sistema
+memory-profiler>=0.61.0  # Análisis de uso de memoria
+line-profiler>=4.1.1  # Perfilado línea por línea

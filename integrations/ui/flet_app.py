@@ -1,6 +1,6 @@
 import flet as ft
 from services.nlp.nlp_service import NLPService
-from integrations.ui.config_window import ConfigWindow  # Cambiar a la nueva ventana de configuración
+from integrations.ui.config_window import ConfigWindow
 
 class FleetApp:
     def __init__(self, nlp_service: NLPService):
