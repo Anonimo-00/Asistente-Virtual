@@ -54,7 +54,9 @@
                 "icon_button": "#8ab4f8",
                 "icon_button_hover": "#a5c7ff",
                 "mic_active": "#EA4335",
-                "card_border": "rgba(255, 255, 255, 0.1)"
+                "card_border": "rgba(255, 255, 255, 0.1)",
+                "card_shadow": "rgba(0, 0, 0, 0.15)",
+                "card_hover": "rgba(255, 255, 255, 0.05)"
             },
             "light": {
                 "bg_primary": "#FFFFFF",

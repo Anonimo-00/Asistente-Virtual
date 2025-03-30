@@ -41,4 +41,9 @@ class ConversationSkill(SkillBase):
     def execute(self, params: Dict[str, Any]) -> Dict[str, Any]:
         message = params.get("message", "")
         response = self.process_basic_intent(message)
-        return {"response": response if response else None}
+        return {
+            "response": {
+                "type": "card",
+                "content": response if response else "Lo siento, no entendí tu solicitud."
+            }
+        }

@@ -1,0 +1,17 @@
+{
+    "is_active": true,
+    "wifi_status": true,
+    "theme_mode": "light",
+    "last_activity": 1743210938.5485742,
+    "last_backup_time": 1743300034.0951705,
+    "app_settings": {
+        "theme": {
+            "mode": "light"
+        }
+    },
+    "user_preferences": {
+        "theme": "light",
+        "font_size": 16,
+        "voice_enabled": false
+    }
+}

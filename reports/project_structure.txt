@@ -1,0 +1,132 @@
+=== Estructura del Proyecto ===
+Raíz: D:\App´s\Asistente Virtual
+
+└── Asistente Virtual/
+    ├── .qodo/
+    ├── .vscode/
+    │   └── settings.json (0.3 KB)
+    ├── assets/
+    │   └── assistant_logo.png (0.7 KB)
+    ├── backup/
+    ├── config/
+    │   └── settings.json (4.5 KB)
+    ├── data/
+    │   ├── cache/
+    │   │   ├── audio/
+    │   │   ├── documents/
+    │   │   ├── images/
+    │   │   ├── search/
+    │   │   └── video/
+    │   ├── entities/
+    │   ├── training/
+    │   ├── user/
+    │   │   └── profile.json (0.3 KB)
+    │   └── global_vars.json (0.3 KB)
+    ├── dialogs/
+    │   ├── flows/
+    │   └── responses/
+    ├── global_vars/
+    │   └── __init__.py (6.5 KB)
+    ├── integrations/
+    │   ├── messaging/
+    │   ├── office/
+    │   ├── skills/
+    │   │   ├── base/
+    │   │   │   └── skill_manager.py (0.7 KB)
+    │   │   ├── conversation/
+    │   │   │   ├── conversation_skill.py (0.6 KB)
+    │   │   │   └── __init__.py (0.1 KB)
+    │   │   ├── examples/
+    │   │   │   ├── basic_skills.py (1.0 KB)
+    │   │   │   ├── demo_skills.py (0.5 KB)
+    │   │   │   ├── user_skill.py (1.4 KB)
+    │   │   │   └── __init__.py (0.1 KB)
+    │   │   ├── gemini/
+    │   │   │   ├── embeddings_skill.py (2.6 KB)
+    │   │   │   ├── generation_skill.py (1.8 KB)
+    │   │   │   └── token_counter_skill.py (1.2 KB)
+    │   │   ├── web_search/
+    │   │   │   └── web_search_skill.py (10.1 KB)
+    │   │   ├── web_skill/
+    │   │   │   └── __init__.py (0.8 KB)
+    │   │   ├── base_skill.py (0.3 KB)
+    │   │   ├── conversation.py (1.5 KB)
+    │   │   └── __init__.py (1.9 KB)
+    │   ├── ui/
+    │   │   ├── config_window.py (7.1 KB)
+    │   │   ├── flet_app.py (37.1 KB)
+    │   │   └── settings_view.py (4.3 KB)
+    │   └── webhooks/
+    │       └── webhook_handler.py (0.4 KB)
+    ├── intents/
+    │   ├── common/
+    │   │   └── basic_intents.py (0.6 KB)
+    │   └── custom/
+    ├── reports/
+    │   ├── project_structure.json (27.7 KB)
+    │   └── project_structure.txt (4.8 KB)
+    ├── services/
+    │   ├── cache/
+    │   │   ├── storage/
+    │   │   │   ├── daily/
+    │   │   │   ├── monthly/
+    │   │   │   └── weekly/
+    │   │   ├── cache_cleaner.py (4.0 KB)
+    │   │   └── __init__.py (1.9 KB)
+    │   ├── messaging/
+    │   ├── nlp/
+    │   │   └── nlp_service.py (13.4 KB)
+    │   ├── skills/
+    │   │   ├── help_skill.py (0.8 KB)
+    │   │   ├── skill_registry.py (3.3 KB)
+    │   │   └── __init__.py (0.1 KB)
+    │   ├── message_service.py (1.1 KB)
+    │   ├── nlp_service.py (0.9 KB)
+    │   ├── service_init.py (0.8 KB)
+    │   └── __init__.py (0.5 KB)
+    ├── tests/
+    │   ├── ai/
+    │   │   ├── test_gemini.py (2.8 KB)
+    │   │   ├── test_image_processing.py (1.6 KB)
+    │   │   └── __init__.py (0.1 KB)
+    │   ├── integration/
+    │   ├── network/
+    │   │   ├── test_wifi_monitor.py (2.2 KB)
+    │   │   └── __init__.py (0.1 KB)
+    │   ├── skills/
+    │   │   ├── test_basic_skills.py (1.1 KB)
+    │   │   └── test_web_search.py (1.4 KB)
+    │   ├── unit/
+    │   ├── test_main.py (1.8 KB)
+    │   └── __init__.py (0.1 KB)
+    ├── utils/
+    │   ├── backup_manager.py (4.0 KB)
+    │   ├── config.py (0.8 KB)
+    │   ├── exceptions.py (0.2 KB)
+    │   ├── helpers.py (1.3 KB)
+    │   ├── project_scanner.py (4.6 KB)
+    │   ├── state_manager.py (1.5 KB)
+    │   ├── user_manager.py (1.9 KB)
+    │   ├── web_cache.py (3.7 KB)
+    │   ├── wifi_monitor.py (2.0 KB)
+    │   └── __init__.py (1.1 KB)
+    ├── .gitignore (0.3 KB)
+    ├── assistant-hero.png (103.8 KB)
+    ├── global_vars.py (0.6 KB)
+    ├── main.py (3.2 KB)
+    ├── README.md (5.2 KB)
+    ├── requirements.txt (0.5 KB)
+    └── scan_project.py (5.8 KB)
+
+=== Estadísticas ===
+Archivos totales: 64
+Directorios: 51
+Tamaño total: 0.29 MB
+
+Extensiones encontradas:
+  sin extensión: 1 archivos
+  .json: 5 archivos
+  .png: 2 archivos
+  .py: 53 archivos
+  .md: 1 archivos
+  .txt: 2 archivos
