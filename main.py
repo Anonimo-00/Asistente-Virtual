@@ -1,4 +1,6 @@
 import flet as ft
+from integrations.ui.theme_manager import ThemeManager
+
 import logging
 import time
 import threading

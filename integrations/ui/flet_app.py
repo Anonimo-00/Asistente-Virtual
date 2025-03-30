@@ -1,38 +1,116 @@
 import flet as ft
 from services.nlp.nlp_service import NLPService
-from integrations.ui.settings import SettingsWindow  # Importar la ventana de configuración
+from integrations.ui.config_window import ConfigWindow  # Cambiar a la nueva ventana de configuración
 
 class FleetApp:
     def __init__(self, nlp_service: NLPService):
         self.nlp_service = nlp_service
-        self.page = None  # Inicializar page como None
-        self.nlp_service = nlp_service  # Almacenar el servicio NLP
+        self.page = None
+        self._setup_theme()
 
+    def _setup_theme(self):
+        """Configura el tema inicial y efectos visuales"""
+        self.theme_data = {
+            "glass_blur": 10,
+            "card_elevation": 2,
+            "animation_duration": 250
+        }
 
-    def main(self, page: ft.Page):
-
-
-        self.page = page  # Almacenar el objeto page
-
-        page.title = "Asistente Virtual"
-        page.vertical_alignment = ft.MainAxisAlignment.START
-
-        # Crear un contenedor para las tarjetas
-        card_container = ft.Column()
-
-        # Ejemplo de tarjeta
-        settings_button = ft.ElevatedButton("Configuración", on_click=self.open_settings)
-        card = ft.Card(
+    def _build_chat_area(self):
+        """Construye el área principal de chat con efectos modernos"""
+        return ft.Container(
             content=ft.Column([
-                settings_button,
-                ft.Text("¡Hola! ¿En qué puedo ayudarte?", size=20),
-                ft.ElevatedButton("Enviar", on_click=self.send_message)
-            ])
+                # Área de mensajes
+                ft.Container(
+                    content=ft.ListView(expand=True, spacing=10),
+                    expand=True,
+                    padding=20,
+                    border_radius=20,
+                    gradient=ft.LinearGradient(
+                        begin=ft.alignment.top_center,
+                        end=ft.alignment.bottom_center,
+                        colors=["transparent", "rgba(255,255,255,0.1)"]
+                    ),
+                    blur=self.theme_data["glass_blur"]
+                ),
+                
+                # Campo de entrada con micrófono
+                ft.Container(
+                    content=ft.Row([
+                        ft.TextField(
+                            expand=True,
+                            border_radius=30,
+                            filled=True,
+                            hint_text="Escribe un mensaje...",
+                        ),
+                        ft.IconButton(
+                            icon=ft.icons.MIC,
+                            icon_color="blue400",
+                            tooltip="Activar micrófono"
+                        )
+                    ], spacing=10),
+                    padding=ft.padding.only(top=20)
+                )
+            ]),
+            expand=True
         )
 
-        # Agregar la tarjeta al contenedor
-        card_container.controls.append(card)
-        page.add(card_container)
+    def main(self, page: ft.Page):
+        self.page = page  # Almacenar el objeto page
+
+        page.title = "Asistente Virtual - Central"  # Título de la aplicación
+
+        page.vertical_alignment = ft.MainAxisAlignment.START
+
+        # Configurar tema y efectos
+        page.theme_mode = ft.ThemeMode.DARK
+        page.window_bgcolor = ft.colors.TRANSPARENT
+        page.window_title_bar_buttons_hidden = True
+
+        # Configurar efectos globales
+        page.theme = ft.Theme(
+            visual_density=ft.ThemeVisualDensity.COMFORTABLE,
+            use_material3=True,
+        )
+        
+        # Agregar contenido principal con nuevo diseño
+        main_content = ft.Container(
+            content=ft.Column([
+                self._build_header(),
+                self._build_chat_area()
+            ]),
+            expand=True,
+            padding=20
+        )
+        
+        page.add(main_content)
+
+    def _build_header(self):
+        """Construye la barra superior con efecto glassmorphism"""
+        return ft.Container(
+            content=ft.Row([
+                ft.Text("Central",
+                       size=28,
+                       weight=ft.FontWeight.BOLD),
+                ft.Row([
+                    ft.IconButton(
+                        ft.icons.DARK_MODE,
+                        on_click=self._toggle_theme
+                    ),
+                    ft.IconButton(
+                        ft.icons.SETTINGS,
+                        on_click=self._show_settings
+                    )
+                ])
+            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            padding=20,
+            margin=ft.margin.only(bottom=20),
+            border_radius=15,
+            gradient=ft.LinearGradient(
+                ["transparent", "rgba(255,255,255,0.1)"]
+            ),
+            blur=self.theme_data["glass_blur"]
+        )
 
     async def send_message(self, e):
         user_input = "Tu mensaje aquí"  # Aquí deberías obtener el texto del botón o campo de entrada

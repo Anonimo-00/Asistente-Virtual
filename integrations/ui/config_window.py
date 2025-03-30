@@ -25,37 +25,44 @@ class ConfigWindow:
     def build(self):
         self.view = ft.Container(
             content=ft.Column([
-                # Header
+                # Header con efecto de glassmorphism
                 ft.Container(
                     content=ft.Row([
-                        ft.Row([
-                            ft.Icon(ft.icons.SETTINGS, size=30, color=ft.colors.BLUE_400),
-                            ft.Text("Configuración", size=28, weight=ft.FontWeight.BOLD),
-                        ], spacing=10),
+                        ft.Text("Configuración", 
+                               size=28, 
+                               weight=ft.FontWeight.BOLD,
+                               color=ft.colors.WHITE),
                         ft.IconButton(
-                            icon=ft.icons.CLOSE_ROUNDED,
-                            icon_color=ft.colors.RED_400,
-                            icon_size=30,
-                            on_click=self.close_window,
-                            style=ft.ButtonStyle(
-                                shape=ft.RoundedRectangleBorder(radius=10),
-                            ),
+                            ft.icons.CLOSE,
+                            on_click=self.close_window
                         )
-                    ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                    padding=ft.padding.all(20),
-                    bgcolor=ft.colors.with_opacity(0.05, ft.colors.WHITE),
-                    border_radius=ft.border_radius.only(bottom_left=10, bottom_right=10),
-                ),
-
-                # Panel de configuración
-                ft.Container(
-                    content=self._build_system_prefs(),
-                    expand=True,
+                    ]),
+                    gradient=ft.LinearGradient(
+                        begin=ft.alignment.top_left,
+                        end=ft.alignment.bottom_right,
+                        colors=[
+                            "rgba(255,255,255,0.1)",
+                            "rgba(255,255,255,0.05)"
+                        ]
+                    ),
+                    blur=5,
                     padding=20,
+                    border_radius=10
                 ),
+                
+                # Contenido principal
+                ft.Container(
+                    content=ft.Column([
+                        self._build_theme_section(),
+                        self._build_animation_section(),
+                        self._build_accessibility_section()
+                    ]),
+                    padding=20,
+                    expand=True
+                )
             ]),
-            expand=True,
-            bgcolor=ft.colors.with_opacity(0.95, ft.colors.BLACK),
+            animate=ft.animation.Animation(300, "easeOut"),
+            blur=10
         )
         return self.view
 
@@ -64,7 +71,6 @@ class ConfigWindow:
         self.page.update()
 
     def _build_system_prefs(self):
-        # Obtener tema de las variables globales primero
         theme = get_global_var("theme_mode") or self.user_manager.obtener_dato("preferencias", "tema") or "dark"
         
         return ft.Container(
@@ -81,8 +87,7 @@ class ConfigWindow:
                                 active_color=ft.colors.BLUE_400,
                                 on_change=self._save_theme
                             ),
-                    ]),
-                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                        ]),
                         
                         # Control de voz
                         ft.Switch(
@@ -103,9 +108,9 @@ class ConfigWindow:
                                 on_change=lambda e: self._save_pref("preferencias", "tamano_fuente", e.control.value),
                                 expand=True,
                             ),
-                            ft.Text(f"{int(float(self.user_manager.obtener_dato('preferencias', 'tamano_fuente') or 16))}px")
-                        ])
-                    ], spacing=20),
+                            ft.Text(f"{int(float(self.user_manager.obtener_dato('preferencias', 'tamano_fuente') or 16))}px"),
+                        ], spacing=20),
+                    ]),
                     padding=20,
                     bgcolor=ft.colors.with_opacity(0.1, ft.colors.WHITE),
                     border_radius=15,
@@ -210,3 +215,24 @@ class ConfigWindow:
             theme_events.remove_listener(self._on_theme_changed)
         except:
             pass
+
+    def _build_theme_section(self):
+        """Construye la sección de configuración de tema"""
+        return ft.Card(
+            content=ft.Column([
+                ft.Text("Personalización",
+                       size=20,
+                       weight=ft.FontWeight.BOLD),
+                ft.Divider(),
+                ft.Row([
+                    ft.Text("Modo Oscuro"),
+                    ft.Switch(
+                        value=self.current_theme == "dark",
+                        on_change=self._save_theme
+                    )
+                ]),
+                # Más controles de tema...
+            ]),
+            elevation=2,
+            margin=10
+        )

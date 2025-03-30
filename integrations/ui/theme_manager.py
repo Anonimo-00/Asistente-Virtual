@@ -18,13 +18,12 @@ class ThemeColors:
     text_secondary: str
     surface: str
     card_bg: str
-    button_bg: str  # Nuevo color para el fondo de los botones
     button_text: str  # Nuevo color para el texto de los botones
-    card_bg: str  # Nuevo color para el fondo de las tarjetas
+    button_bg: str  # Color de fondo de los botones
+    card_shadow: str  # Sombra de las tarjetas
+
     gradient_bg: str  # Color para el fondo con gradiente
     glass_effect: str  # Color para el efecto de glassmorphism
-
-
 
     error: str
     success: str
@@ -32,8 +31,6 @@ class ThemeColors:
     shadow: str
     input_bg: str
     input_text: str
-    button_bg: str
-    button_text: str
     hover: str
     settings_bg: str
     settings_text: str
@@ -126,41 +123,51 @@ class ThemeManager:
             logger.error(f"Error actualizando settings.json: {e}")
 
     def apply_theme(self, page: ft.Page, theme_mode: Optional[str] = None):
-        """Aplica el tema seleccionado a la página"""
+        """Aplica el tema seleccionado con efectos modernos"""
         if theme_mode:
             self.current_theme = theme_mode
             
         theme = self.themes.get(self.current_theme, self.themes["dark"])
-        update_theme(self.current_theme)  # Actualizar el tema global
         
-        # Material 3 Theme
+        # Aplicar efectos de glassmorphism y gradientes
+        page.style = {
+            "background": theme.gradient_bg,
+            "backdrop-filter": "blur(10px)",
+            "transition": "all 0.3s ease"
+        }
+        
+        # Aplicar Material 3 Theme con efectos modernos
         page.theme = ft.Theme(
             color_scheme=ft.ColorScheme(
                 primary=theme.accent,
                 secondary=theme.text_secondary,
-                surface=theme.surface,
-                background=theme.bg_primary,
+                surface=f"linear-gradient(to bottom, {theme.surface}, {theme.bg_secondary})",
+                background=theme.gradient_bg,
                 error=theme.error,
-                surface_tint=theme.accent,
-                outline=theme.divider,
-                shadow=theme.shadow,
-                gradient=theme.gradient_bg,  # Aplicar gradiente
-                glass_effect=theme.glass_effect,  # Aplicar efecto de glassmorphism
+                surface_tint=theme.glass_effect
             ),
             visual_density=ft.ThemeVisualDensity.COMFORTABLE,
-            use_material3=True,
+            use_material3=True
         )
         
-        # Aplicar estilos específicos
-        page.bgcolor = theme.bg_primary
-        page.fonts = {
-            "Roboto": "/fonts/Roboto-Regular.ttf",
-            "Google Sans": "/fonts/GoogleSans-Regular.ttf",
-        }
-        
-        # Actualizar controles
-        self._update_controls(page, theme)
+        # Actualizar estilos de tarjetas
+        self._update_card_styles(page, theme)
         page.update()
+        
+    def _update_card_styles(self, page: ft.Page, theme: ThemeColors):
+        """Aplica estilos modernos a las tarjetas"""
+        for control in page.controls:
+            if isinstance(control, ft.Card):
+                control.style = {
+                    "background": theme.card_bg,
+                    "box-shadow": theme.card_shadow,
+                    "backdrop-filter": "blur(5px)",
+                    "border": f"1px solid {theme.card_border}",
+                    "transition": "transform 0.2s ease"
+                }
+                control.hover_style = {
+                    "transform": "scale(1.02)"
+                }
 
     def _update_controls(self, page: ft.Page, theme: ThemeColors):
         """Actualiza los estilos de los controles"""
@@ -196,6 +203,8 @@ class ThemeManager:
                 text_secondary="#B3B3B3",
                 surface="#2D2D2D",
                 button_bg="#3C4043",  # Color de fondo de los botones
+
+
                 button_text="#FFFFFF",  # Color de texto de los botones
                 card_bg="rgba(32, 33, 36, 0.95)",  # Color de fondo de las tarjetas
                 gradient_bg="linear-gradient(to right, #6a11cb, #2575fc)",  # Ejemplo de gradiente
@@ -208,8 +217,6 @@ class ThemeManager:
                 shadow="rgba(0, 0, 0, 0.3)",
                 input_bg="#2D2D2D",
                 input_text="#FFFFFF",
-                button_bg="#3C4043",
-                button_text="#FFFFFF",
                 hover="rgba(255, 255, 255, 0.1)",
                 settings_bg="#2D2D2D",
                 settings_text="#FFFFFF",
@@ -224,7 +231,8 @@ class ThemeManager:
                 card_border="rgba(255, 255, 255, 0.1)",
                 # Nuevos colores para el diseño basado en tarjetas
                 card_shadow="rgba(0, 0, 0, 0.15)",
-                card_hover="rgba(255, 255, 255, 0.05)"
+                # card_hover="rgba(255, 255, 255, 0.05)"  # Eliminar card_hover
+
             ),
 
             "light": ThemeColors(
@@ -241,7 +249,8 @@ class ThemeManager:
                 shadow="rgba(0, 0, 0, 0.1)",
                 input_bg="#F8F9FA",
                 input_text="#202124", 
-                button_bg="#F1F3F4",
+                # button_bg="#F1F3F4",
+
                 button_text="#202124",
                 hover="rgba(0, 0, 0, 0.05)",
                 settings_bg="#FFFFFF",

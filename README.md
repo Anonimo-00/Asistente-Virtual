@@ -4,6 +4,14 @@ Este proyecto es un asistente virtual personal desarrollado en Python, diseñado
 
 ## Características
 
+## Librerías Recomendadas para el Desarrollo de la UI en Python 3.12
+
+- **Flet:** Una opción moderna y sencilla para construir interfaces web y de escritorio en Python.
+- **PySide6 (Qt for Python):** Ofrece amplias posibilidades de personalización y es ideal para interfaces complejas y de alta calidad.
+- **Kivy:** Especializada en aplicaciones táctiles y responsivas, ideal para dispositivos móviles y de escritorio.
+- **Dear PyGui:** Basada en el paradigma de “modo inmediato”, excelente para prototipos y aplicaciones con actualizaciones dinámicas.
+
+
 - 🎯 Monitoreo de Conexión a Internet con estado en tiempo real
 - 🤖 Integración con Gemini AI para procesamiento de lenguaje natural
 - 🖼️ Soporte para análisis de imágenes con Gemini Vision
@@ -119,6 +127,14 @@ Asistente_Virtual/
 └── main.py                        # Punto de entrada principal de la aplicación
 
 ```
+
+## Librerías Recomendadas para el Desarrollo de la UI en Python 3.12
+
+- **Flet:** Una opción moderna y sencilla para construir interfaces web y de escritorio en Python.
+- **PySide6 (Qt for Python):** Ofrece amplias posibilidades de personalización y es ideal para interfaces complejas y de alta calidad.
+- **Kivy:** Especializada en aplicaciones táctiles y responsivas, ideal para dispositivos móviles y de escritorio.
+- **Dear PyGui:** Basada en el paradigma de “modo inmediato”, excelente para prototipos y aplicaciones con actualizaciones dinámicas.
+
 
 ## Desarrollo de Skills
 
